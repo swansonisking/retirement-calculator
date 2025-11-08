@@ -160,7 +160,7 @@
                         </div>
                     </div>
                     <div class="info-box">
-                        <h4>Ã°Å¸â€™Â¡ Why Spouse Age Matters</h4>
+                        <h4>ÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã‚Â¡ Why Spouse Age Matters</h4>
                         <p style="font-size: 14px;">If married, enter your spouse's age. This ensures accurate standard deductions throughout retirement, since the age 65+ additional deduction ($1,600/person) and the new $6,000 bonus senior deduction apply per person based on their individual age.</p>
                     </div>
                 </div>
@@ -466,6 +466,18 @@
                         <button class="button" onclick="calculateFullAnalysis()" id="fullAnalysisButton"> Calculate Full Analysis (with Monte Carlo)</button>
             <button class="button secondary" onclick="calculate()" id="quickButton"> Quick Calculate (deterministic only)</button>
             <button class="button secondary" onclick="exportToCSV()" id="exportButton" style="display: none;"> Export to CSV</button>
+            
+            <!-- Template Management Section -->
+            <div class="section-divider"></div>
+            <div class="section-label">💾 Save & Load Templates</div>
+            <p style="color: #555; font-size: 14px; margin-bottom: 15px;">Save your current configuration as a template to quickly reload it later. Templates are stored locally in your browser.</p>
+            
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+                <input type="text" id="templateName" placeholder="Template name (e.g., 'My Retirement Plan')" style="flex: 1; min-width: 250px;">
+                <button class="button" onclick="saveTemplate()" style="margin: 0;">💾 Save Current as Template</button>
+            </div>
+            
+            <div id="templateList"></div>
         </div>
         
         
@@ -891,6 +903,168 @@
             };
         }
         
+        // ========================================
+        // TEMPLATE SAVE/LOAD FUNCTIONS
+        // ========================================
+        
+        function saveTemplate() {
+            const templateName = document.getElementById('templateName').value.trim();
+            
+            if (!templateName) {
+                alert('Please enter a name for your template');
+                return;
+            }
+            
+            // Get current inputs
+            const currentInputs = getInputs();
+            
+            // Create template object with metadata
+            const template = {
+                name: templateName,
+                savedDate: new Date().toISOString(),
+                inputs: currentInputs,
+                oneTimeExpenses: [...oneTimeExpenses]
+            };
+            
+            // Get existing templates from localStorage
+            let templates = JSON.parse(localStorage.getItem('retirementTemplates') || '[]');
+            
+            // Check if template with same name exists
+            const existingIndex = templates.findIndex(t => t.name === templateName);
+            if (existingIndex >= 0) {
+                if (!confirm(`A template named "${templateName}" already exists. Do you want to overwrite it?`)) {
+                    return;
+                }
+                templates[existingIndex] = template;
+            } else {
+                templates.push(template);
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('retirementTemplates', JSON.stringify(templates));
+            
+            // Clear the input field
+            document.getElementById('templateName').value = '';
+            
+            // Update display
+            displayTemplates();
+            
+            alert(`Template "${templateName}" saved successfully!`);
+        }
+        
+        function loadTemplate(templateName) {
+            const templates = JSON.parse(localStorage.getItem('retirementTemplates') || '[]');
+            const template = templates.find(t => t.name === templateName);
+            
+            if (!template) {
+                alert('Template not found');
+                return;
+            }
+            
+            const inputs = template.inputs;
+            
+            // Set all input values
+            document.getElementById('traditionalValue').value = inputs.traditionalValue;
+            document.getElementById('rothValue').value = inputs.rothValue;
+            document.getElementById('taxableValue').value = inputs.taxableValue;
+            document.getElementById('traditionalContributions').value = inputs.traditionalContributions;
+            document.getElementById('rothContributions').value = inputs.rothContributions;
+            document.getElementById('taxableContributions').value = inputs.taxableContributions;
+            document.getElementById('currentAge').value = inputs.currentAge;
+            document.getElementById('spouseAge').value = inputs.spouseAge || '';
+            document.getElementById('partTimeStartAge').value = inputs.partTimeStartAge;
+            document.getElementById('fullRetirementAge').value = inputs.fullRetirementAge;
+            document.getElementById('fullTimeIncome').value = inputs.fullTimeIncome;
+            document.getElementById('partTimeIncome').value = inputs.partTimeIncome;
+            document.getElementById('annualExpenses').value = inputs.annualExpensesToday;
+            document.getElementById('healthcareCosts').value = inputs.healthcareCosts;
+            document.getElementById('medicareSupplement').value = inputs.medicareSupplement;
+            document.getElementById('numPeople').value = inputs.numPeople;
+            document.getElementById('returnRate').value = inputs.returnRate * 100;
+            document.getElementById('stdDev').value = inputs.stdDev * 100;
+            document.getElementById('inflationRate').value = inputs.inflationRate * 100;
+            document.getElementById('socialSecurity').value = inputs.socialSecurity;
+            document.getElementById('ssStartAge').value = inputs.ssStartAge;
+            document.getElementById('lifeExpectancy').value = inputs.lifeExpectancy;
+            document.getElementById('mortgagePayment').value = inputs.mortgagePayment;
+            document.getElementById('mortgagePayoffAge').value = inputs.mortgagePayoffAge;
+            document.getElementById('stressScenario').value = inputs.stressScenario;
+            document.getElementById('stressReturn').value = inputs.stressReturn * 100;
+            document.getElementById('stressDuration').value = inputs.stressDuration;
+            document.getElementById('filingStatus').value = inputs.filingStatus;
+            document.getElementById('costBasisPercent').value = inputs.costBasisPercent * 100;
+            document.getElementById('maxConversionRate').value = inputs.maxConversionRate * 100;
+            
+            // Load one-time expenses
+            oneTimeExpenses = template.oneTimeExpenses || [];
+            updateExpenseTable();
+            
+            // Apply comma formatting to dollar fields
+            const dollarFields = ['traditionalValue', 'rothValue', 'taxableValue', 'traditionalContributions', 
+                                  'rothContributions', 'taxableContributions', 'fullTimeIncome', 'partTimeIncome', 
+                                  'annualExpenses', 'healthcareCosts', 'medicareSupplement', 'mortgagePayment', 'socialSecurity'];
+            dollarFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field && field.value) {
+                    field.value = formatNumberWithCommas(field.value);
+                }
+            });
+            
+            alert(`Template "${templateName}" loaded successfully!`);
+        }
+        
+        function deleteTemplate(templateName) {
+            if (!confirm(`Are you sure you want to delete the template "${templateName}"?`)) {
+                return;
+            }
+            
+            let templates = JSON.parse(localStorage.getItem('retirementTemplates') || '[]');
+            templates = templates.filter(t => t.name !== templateName);
+            localStorage.setItem('retirementTemplates', JSON.stringify(templates));
+            
+            displayTemplates();
+            alert(`Template "${templateName}" deleted successfully!`);
+        }
+        
+        function displayTemplates() {
+            const templates = JSON.parse(localStorage.getItem('retirementTemplates') || '[]');
+            const templateList = document.getElementById('templateList');
+            
+            if (templates.length === 0) {
+                templateList.innerHTML = '<p style="color: #7f8c8d; font-style: italic; font-size: 14px;">No saved templates yet. Create one above!</p>';
+                return;
+            }
+            
+            templateList.innerHTML = `
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <h4 style="margin-bottom: 15px; color: #2c3e50;">Saved Templates (${templates.length})</h4>
+                    <div style="display: grid; gap: 10px;">
+                        ${templates.map(template => {
+                            const savedDate = new Date(template.savedDate);
+                            const dateStr = savedDate.toLocaleDateString() + ' ' + savedDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+                            return `
+                                <div style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #3498db; display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <div style="font-weight: 600; color: #2c3e50; margin-bottom: 5px;">${template.name}</div>
+                                        <div style="font-size: 12px; color: #7f8c8d;">Saved: ${dateStr}</div>
+                                    </div>
+                                    <div style="display: flex; gap: 10px;">
+                                        <button class="button small" onclick="loadTemplate('${template.name.replace(/'/g, "\\'")}')">📂 Load</button>
+                                        <button class="button small danger" onclick="deleteTemplate('${template.name.replace(/'/g, "\\'")}')">🗑️ Delete</button>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Display templates on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            displayTemplates();
+        });
+        
         function getStandardDeduction(year, filingStatus, primaryAge = null, spouseAge = null, numPeople = 1) {
             const baseYear = 2025;
             const inflationRate = 0.025;
@@ -982,7 +1156,7 @@
                 // Completely phased out
                 return 0;
             } else {
-                // Partial phase-out: reduce by 6Ã‚Â¢ for every $1 over threshold
+                // Partial phase-out: reduce by 6Ãƒâ€šÃ‚Â¢ for every $1 over threshold
                 const excessIncome = magi - threshold.start;
                 const reduction = excessIncome * 0.06;
                 const phasedBonus = Math.max(0, totalBonus - reduction);
@@ -2336,8 +2510,8 @@
                         <p style="margin-top: 10px;"><strong> Enhanced Features Applied:</strong></p>
                         <ul style="margin-left: 20px; font-size: 14px;">
                             <li><strong>Standard Deduction:</strong> $${getStandardDeduction(new Date().getFullYear(), inputs.filingStatus, inputs.currentAge, inputs.spouseAge, inputs.numPeople).toLocaleString()} (${inputs.filingStatus}) reduces taxable income each year</li>
-                            <li><strong>Ã°Å¸â€™Â° NEW: Bonus Senior Deduction (2025-2028):</strong> Additional $6,000 per person age 65+ (up to $12,000 for couples). Phases out if MAGI > $150k (married) / $75k (single). This is ON TOP of the standard deduction!</li>
-                            <li><strong>Healthcare Costs:</strong> $${inputs.healthcareCosts.toLocaleString()}/yr pre-65 (household), $${inputs.medicareSupplement.toLocaleString()}/yr per person post-65 (Ã— ${inputs.numPeople} = $${(inputs.medicareSupplement * inputs.numPeople).toLocaleString()}/yr total)</li>
+                            <li><strong>ÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã‚Â° NEW: Bonus Senior Deduction (2025-2028):</strong> Additional $6,000 per person age 65+ (up to $12,000 for couples). Phases out if MAGI > $150k (married) / $75k (single). This is ON TOP of the standard deduction!</li>
+                            <li><strong>Healthcare Costs:</strong> $${inputs.healthcareCosts.toLocaleString()}/yr pre-65 (household), $${inputs.medicareSupplement.toLocaleString()}/yr per person post-65 (Ãƒâ€” ${inputs.numPeople} = $${(inputs.medicareSupplement * inputs.numPeople).toLocaleString()}/yr total)</li>
                             <li><strong>Medicare IRMAA:</strong> ${results.irmaaWarnings.length > 0 ? results.irmaaWarnings.length + ' years with surcharges' : 'No surcharges - staying below thresholds!'}</li>
                             <li><strong>NIIT (3.8% Surtax):</strong> ${results.niitWarnings && results.niitWarnings.length > 0 ? results.niitWarnings.length + ' years when MAGI exceeds threshold' : 'MAGI stays below threshold - no NIIT!'}</li>
                             <li><strong>One-Time Expenses:</strong> ${inputs.oneTimeExpenses.length} event(s) totaling $${inputs.oneTimeExpenses.reduce((sum, e) => sum + e.amount, 0).toLocaleString()}</li>
@@ -2777,7 +2951,7 @@
                 const ratePercent = (r.successRate * 100).toFixed(0);
                 const yearsFromNow = r.earliestAge - baseInputs.currentAge;
                 const highlight = r.successRate === 0.85 ? ' style="background: #e3f2fd; font-weight: 600;"' : '';
-                const checkmark = r.successRate === 0.85 ? ' ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“' : '';
+                const checkmark = r.successRate === 0.85 ? ' ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ' : '';
                 
                 html += '<tr' + highlight + '>';
                 html += `<td>${ratePercent}%${checkmark}</td>`;
@@ -2851,7 +3025,7 @@
                 html += '<li><strong>Full Retirement:</strong> When you can stop all work and live off your portfolio</li>';
             }
             
-            html += '<li><strong>85% success rate ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“</strong> is the industry standard for retirement planning</li>';
+            html += '<li><strong>85% success rate ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ</strong> is the industry standard for retirement planning</li>';
             html += '<li><strong>Years from Now</strong> shows how long until you could ' + (isPartTime ? 'move to part-time' : 'fully retire') + ' at each success rate</li>';
             html += '<li><strong>Portfolio Needed</strong> is your total portfolio value at that age</li>';
             
