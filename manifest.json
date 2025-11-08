@@ -2,7 +2,7 @@
   "name": "Retirement Calculator",
   "short_name": "RetireCalc",
   "description": "Advanced retirement planning calculator with tax optimization and Monte Carlo analysis",
-  "start_url": "./retirement_calculator.html",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#f5f7fa",
   "theme_color": "#3498db",
