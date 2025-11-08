@@ -1,0 +1,2909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retirement Calculator v2 - Enhanced Tax & Healthcare Modeling</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Theme colors -->
+    <meta name="theme-color" content="#3498db">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="RetireCalc">
+    
+    <!-- App icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+    <link rel="apple-touch-icon" href="icon-512.png">
+    
+    <!-- Description for search engines and sharing -->
+    <meta name="description" content="Advanced retirement planning calculator with tax optimization, Medicare IRMAA tracking, and Monte Carlo analysis">
+    <meta name="keywords" content="retirement calculator, tax planning, Monte Carlo simulation, IRMAA, Roth conversion, retirement planning">
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { color: #2c3e50; margin-bottom: 30px; font-size: 28px; }
+        .panel { background: white; border-radius: 8px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .panel-title { font-size: 18px; font-weight: 600; color: #2c3e50; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #3498db; }
+        .input-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .input-group { display: flex; flex-direction: column; }
+        label { font-size: 14px; font-weight: 500; color: #555; margin-bottom: 5px; }
+        .label-note { font-size: 12px; color: #7f8c8d; font-weight: normal; font-style: italic; }
+        input[type="number"], input[type="text"], select { padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
+        input[type="number"]:focus, input[type="text"]:focus, select:focus { outline: none; border-color: #3498db; }
+        .button { background: #3498db; color: white; border: none; padding: 12px 30px; border-radius: 5px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 10px; margin-right: 10px; }
+        .button:hover { background: #2980b9; }
+        .button.secondary { background: #95a5a6; }
+        .button.secondary:hover { background: #7f8c8d; }
+        .button.small { padding: 8px 15px; font-size: 14px; margin-top: 0; }
+        .button.danger { background: #e74c3c; }
+        .button.danger:hover { background: #c0392b; }
+        .button:disabled { background: #bdc3c7; cursor: not-allowed; }
+        .results { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .result-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; text-align: center; }
+        .result-card.success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        .result-card.warning { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .result-label { font-size: 12px; opacity: 0.9; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        .result-value { font-size: 28px; font-weight: bold; }
+        .result-subtitle { font-size: 12px; opacity: 0.8; margin-top: 5px; }
+        .chart-container { margin: 20px 0; min-height: 400px; }
+        .info-box { background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px; margin: 15px 0; border-radius: 4px; }
+        .warning-box { background: #fff3e0; border-left: 4px solid #ff9800; padding: 15px; margin: 15px 0; border-radius: 4px; }
+        .highlight-box { background: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; margin: 15px 0; border-radius: 4px; }
+        .irmaa-warning { background: #ffebee; border-left: 4px solid #f44336; padding: 15px; margin: 15px 0; border-radius: 4px; }
+        .info-box h4, .warning-box h4, .highlight-box h4, .irmaa-warning h4 { margin-bottom: 10px; color: #2c3e50; }
+        .info-box ul, .warning-box ul { margin-left: 20px; }
+        .section-divider { margin: 30px 0 20px 0; padding-top: 20px; border-top: 2px dashed #ddd; }
+        .section-label { font-size: 16px; font-weight: 600; color: #34495e; margin-bottom: 15px; }
+        .progress-bar { width: 100%; height: 30px; background: #ecf0f1; border-radius: 15px; overflow: hidden; margin: 10px 0; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #3498db, #2ecc71); transition: width 0.3s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; }
+        .expense-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .expense-table th, .expense-table td { padding: 8px; border: 1px solid #ddd; text-align: left; }
+        .expense-table th { background: #f0f0f0; font-weight: 600; }
+        .expense-row { background: white; }
+        .expense-row:hover { background: #f9f9f9; }
+        .tldr-section { margin-bottom: 30px; }
+        .tldr-title { font-size: 22px; font-weight: 700; color: #2c3e50; margin-bottom: 20px; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        .tldr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .tldr-card { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-left: 5px solid #3498db; transition: transform 0.2s; }
+        .tldr-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
+        .tldr-card.excellent { border-left-color: #27ae60; background: linear-gradient(135deg, #ffffff 0%, #f1f9f5 100%); }
+        .tldr-card.good { border-left-color: #2ecc71; background: linear-gradient(135deg, #ffffff 0%, #f1f9f5 100%); }
+        .tldr-card.warning { border-left-color: #f39c12; background: linear-gradient(135deg, #ffffff 0%, #fef9f3 100%); }
+        .tldr-card.danger { border-left-color: #e74c3c; background: linear-gradient(135deg, #ffffff 0%, #fef5f4 100%); }
+        .tldr-icon { font-size: 32px; margin-bottom: 10px; }
+        .tldr-label { font-size: 13px; color: #7f8c8d; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 600; }
+        .tldr-value { font-size: 36px; font-weight: 700; color: #2c3e50; margin-bottom: 5px; line-height: 1; }
+        .tldr-subtitle { font-size: 14px; color: #7f8c8d; margin-top: 8px; }
+        .tldr-warnings { background: #fff3e0; border-left: 4px solid #f39c12; padding: 15px; border-radius: 8px; margin-top: 20px; }
+        .tldr-warnings h4 { color: #e67e22; margin-bottom: 10px; }
+        .tldr-warnings ul { margin-left: 20px; margin-top: 10px; }
+
+        
+        /* Collapsible Section Styles */
+        .collapsible-section { margin-bottom: 20px; border-radius: 8px; overflow: hidden; border: 1px solid #e0e0e0; }
+        .section-header { padding: 15px 20px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: all 0.3s ease; font-weight: 600; font-size: 15px; user-select: none; }
+        .section-header:hover { opacity: 0.9; transform: translateX(2px); }
+        .section-header.collapsed { border-bottom: none; }
+        .section-icon { font-size: 20px; margin-right: 12px; }
+        .section-toggle { font-size: 18px; transition: transform 0.3s ease; }
+        .section-toggle.expanded { transform: rotate(180deg); }
+        .section-content { padding: 20px; background: white; display: block; }
+        .section-content.collapsed { display: none; }
+        
+        /* Color-coded section headers */
+        .section-header.basic { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .section-header.portfolio { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+        .section-header.timeline { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; }
+        .section-header.contributions { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; }
+        .section-header.healthcare { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; }
+        .section-header.tax { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); color: white; }
+        .section-header.mortgage { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #2c3e50; }
+        .section-header.expenses { background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); color: #2c3e50; }
+        .section-header.onetimes { background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); color: #2c3e50; }
+        .section-header.market { background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%); color: #2c3e50; }
+        .section-header.stress { background: linear-gradient(135deg, #fdcbf1 0%, #e6dee9 100%); color: #2c3e50; }
+        
+        /* Tooltip styles */
+        .tooltip-icon { display: inline-block; width: 16px; height: 16px; background: #3498db; color: white; border-radius: 50%; text-align: center; line-height: 16px; font-size: 11px; cursor: help; margin-left: 5px; position: relative; }
+        .tooltip-icon:hover::after { content: attr(data-tooltip); position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%); background: #2c3e50; color: white; padding: 8px 12px; border-radius: 4px; white-space: nowrap; font-size: 12px; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .tooltip-icon:hover::before { content: ''; position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: #2c3e50; z-index: 1000; }
+        
+        /* Control buttons */
+        .control-buttons { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .control-btn { padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 5px; cursor: pointer; font-size: 13px; color: #555; transition: all 0.2s; }
+        .control-btn:hover { background: #f8f9fa; border-color: #3498db; color: #3498db; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Retirement Calculator v2 - Enhanced Tax & Healthcare Modeling</h1>
+        
+        <div class="panel">
+            <div class="panel-title">Step 1: Enter Your Information</div>
+            
+            <div class="control-buttons">
+                <button class="control-btn" onclick="expandAllSections()"> Expand All</button>
+                <button class="control-btn" onclick="collapseAllSections()"> Collapse All</button>
+                <button class="control-btn" onclick="loadDefaults()"> Load Default Values</button>
+            </div>
+            
+            <!-- Basic Information -->
+            <div class="collapsible-section">
+                <div class="section-header basic" onclick="toggleSection(this)">
+                    <div>Basic Information</div>
+                    <span class="section-toggle expanded"></span>
+                </div>
+                <div class="section-content">
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Current Portfolio Value ($)</label>
+                            <input type="text" id="currentPortfolio" value="0" step="10000">
+                        </div>
+                        <div class="input-group">
+                            <label>Your Current Age</label>
+                            <input type="number" id="currentAge" value="30" min="18" max="80">
+                        </div>
+                        <div class="input-group">
+                            <label>Spouse Age <span class="label-note">(leave blank if single)</span></label>
+                            <input type="number" id="spouseAge" value="" min="18" max="110" placeholder="Optional">
+                        </div>
+                        <div class="input-group">
+                            <label>Life Expectancy Age</label>
+                            <input type="number" id="lifeExpectancy" value="85" min="60" max="110">
+                        </div>
+                    </div>
+                    <div class="info-box">
+                        <h4>Ã°Å¸â€™Â¡ Why Spouse Age Matters</h4>
+                        <p style="font-size: 14px;">If married, enter your spouse's age. This ensures accurate standard deductions throughout retirement, since the age 65+ additional deduction ($1,600/person) and the new $6,000 bonus senior deduction apply per person based on their individual age.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Portfolio Breakdown -->
+            <div class="collapsible-section">
+                <div class="section-header portfolio" onclick="toggleSection(this)">
+                    <div>Portfolio Breakdown by Tax Treatment</div>
+                    <span class="section-toggle expanded"></span>
+                </div>
+                <div class="section-content">
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Traditional IRA/401k ($) <span class="label-note">(taxed as income)</span></label>
+                            <input type="text" id="traditionalValue" value="0" step="10000">
+                        </div>
+                        <div class="input-group">
+                            <label>Roth IRA/401k ($) <span class="label-note">(tax-free)</span></label>
+                            <input type="text" id="rothValue" value="0" step="10000">
+                        </div>
+                        <div class="input-group">
+                            <label>Taxable Brokerage ($) <span class="label-note">(capital gains tax)</span></label>
+                            <input type="text" id="taxableValue" value="0" step="10000">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Retirement Timeline -->
+            <div class="collapsible-section">
+                <div class="section-header timeline" onclick="toggleSection(this)">
+                    <div>Retirement Timeline</div>
+                    <span class="section-toggle expanded"></span>
+                </div>
+                <div class="section-content">
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Part-Time Start Age <span class="label-note">(= Full Retirement if no part-time)</span></label>
+                            <input type="number" id="partTimeStartAge" value="55" min="18" max="80">
+                        </div>
+                        <div class="input-group">
+                            <label>Full Retirement Age</label>
+                            <input type="number" id="fullRetirementAge" value="65" min="40" max="80">
+                        </div>
+                        <div class="input-group">
+                            <label>Full-Time Income (Annual $) <span class="label-note">(net of 401k & pre-tax deductions)</span></label>
+                            <input type="text" id="fullTimeIncome" value="0" step="5000" min="0">
+                        </div>
+                        <div class="input-group">
+                            <label>Part-Time Income (Annual $) <span class="label-note">(0 if none)</span></label>
+                            <input type="text" id="partTimeIncome" value="0" step="5000" min="0">
+                        </div>
+                    </div>
+                    <div class="info-box">
+                        <h4>Income Planning for Roth Conversions</h4>
+                        <p style="font-size: 14px;"><strong>Full-Time Income:</strong> Enter your NET household income (after 401k contributions and other pre-tax deductions from paycheck). This is your taxable W-2 income before the standard deduction. The calculator uses this to show Roth conversion opportunities during your pre-retirement working years. If you have room in your target tax bracket after accounting for your salary, the calculator will show optimal Roth conversion amounts.</p>
+                        <p style="font-size: 14px; margin-top: 8px;"><strong>Part-Time Income:</strong> Income during your part-time transition phase between full-time work and full retirement.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Annual Contributions -->
+            <div class="collapsible-section">
+                <div class="section-header contributions collapsed" onclick="toggleSection(this)">
+                    <div>Annual Contributions (Before Part-Time)</div>
+                    <span class="section-toggle"></span>
+                </div>
+                <div class="section-content collapsed">
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Traditional 401(k) Contributions ($) <span class="label-note">(household total)</span></label>
+                            <input type="text" id="traditionalContributions" value="0" step="1000" min="0">
+                        </div>
+                        <div class="input-group">
+                            <label>Roth IRA Contributions ($) <span class="label-note">(household total)</span></label>
+                            <input type="text" id="rothContributions" value="0" step="1000" min="0">
+                        </div>
+                        <div class="input-group">
+                            <label>Taxable Contributions ($)</label>
+                            <input type="text" id="taxableContributions" value="0" step="1000" min="0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Healthcare Costs -->
+            <div class="collapsible-section">
+                <div class="section-header healthcare collapsed" onclick="toggleSection(this)">
+                    <div>Healthcare Costs</div>
+                    <span class="section-toggle"></span>
+                </div>
+                <div class="section-content collapsed">
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Annual Healthcare Costs Age &lt;65 ($) <span class="label-note">(per household, all family members)</span></label>
+                            <input type="text" id="healthcareCosts" value="15000" step="1000" min="0">
+                        </div>
+                        <div class="input-group">
+                            <label>Total Medicare Costs Age 65+ ($) <span class="label-note">(per person per year, includes all Medicare costs)</span></label>
+                            <input type="text" id="medicareSupplement" value="6000" step="100" min="0">
+                        </div>
+                        <div class="input-group">
+                            <label>Number of People on Medicare <span class="label-note">(you + spouse, for costs & IRMAA)</span></label>
+                            <input type="number" id="numPeople" value="2" min="1" max="2">
+                        </div>
+                    </div>
+                    <div class="info-box">
+                        <h4>[TIP] Healthcare Planning Guide</h4>
+                        <p style="margin-bottom: 10px; font-size: 14px;"><strong>Pre-Medicare (Age &lt;65):</strong> Enter TOTAL annual costs for your household (you + spouse + dependents).</p>
+                        <ul style="margin-left: 20px; font-size: 14px; margin-bottom: 10px;">
+                            <li><strong>Typical Range:</strong> $5k-$7k (age 40), $8k-$10k (age 50), $12k-$16k (age 60-64)</li>
+                            <li><strong>NH Advantage:</strong> New Hampshire has the nation's lowest ACA premiums!</li>
+                            <li><strong>ACA Subsidies:</strong> Available if MAGI &lt; $63k (single) or $129k (family) in 2025</li>
+                            <li><strong>Default $15k:</strong> Conservative estimate suitable for ages 50-64 without subsidies</li>
+                        </ul>
+                        <p style="margin-bottom: 10px; font-size: 14px;"><strong>Medicare (Age 65+):</strong> Enter cost PER PERSON for comprehensive Medicare coverage.</p>
+                        <ul style="margin-left: 20px; font-size: 14px;">
+                            <li><strong>2025 Breakdown:</strong> Part B ($2,220) + Part D ($558) + Medigap Plan G ($1,200-$3,600) + deductible ($257) = ~$4,235-$6,035/person</li>
+                            <li><strong>Default $6,000/person:</strong> Covers all Medicare costs except IRMAA surcharges (calculated separately based on income)</li>
+                            <li><strong>Number of People:</strong> Set to 2 for married couple (costs auto-multiply). Dependent children use pre-Medicare costs until independent.</li>
+                            <li><strong>IRMAA Surcharges:</strong> Add $1,000-$6,000/person if income &gt; $212k (married). Calculator handles this automatically.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tax Strategy -->
+            <div class="collapsible-section">
+                <div class="section-header tax collapsed" onclick="toggleSection(this)">
+                    <div>Tax Strategy Settings</div>
+                    <span class="section-toggle"></span>
+                </div>
+                <div class="section-content collapsed">
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Filing Status</label>
+                            <select id="filingStatus">
+                                <option value="married">Married Filing Jointly</option>
+                                <option value="single">Single</option>
+                                <option value="hoh">Head of Household</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Max Roth Conversion Tax Rate (%) <span class="label-note">(convert up to this bracket)</span></label>
+                            <input type="number" id="maxConversionRate" value="22" step="1" min="10" max="37">
+                        </div>
+                        <div class="input-group">
+                            <label>Taxable Account Cost Basis (%) <span class="label-note">(what % is original investment vs gains)</span></label>
+                            <input type="number" id="costBasisPercent" value="70" step="5" min="0" max="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mortgage / Loan Payoff -->
+            <div class="collapsible-section">
+                <div class="section-header mortgage collapsed" onclick="toggleSection(this)">
+                    <div>Mortgage / Loan Payoff</div>
+                    <span class="section-toggle"></span>
+                </div>
+                <div class="section-content collapsed">
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Annual Mortgage/Loan Payment ($) <span class="label-note">(set to $0 if no mortgage)</span></label>
+                            <input type="text" id="mortgagePayment" value="0" step="1000" min="0">
+                        </div>
+                        <div class="input-group">
+                            <label>Mortgage Payoff Age <span class="label-note">(age when fully paid off)</span></label>
+                            <input type="number" id="mortgagePayoffAge" value="65" min="0" max="100">
+                        </div>
+                        <div class="input-group">
+                            <label style="visibility: hidden;">Spacer</label>
+                            <div style="padding-top: 10px; font-size: 13px; color: #7f8c8d; font-style: italic;">
+                                Mortgage will be added to expenses until payoff age, then removed
+                            </div>
+                        </div>
+                    </div>
+                    <div class="info-box">
+                        <h4>Mortgage/Loan Planning</h4>
+                        <p style="font-size: 14px;">This feature adds your mortgage payment to annual expenses automatically until the payoff age, then removes it. Perfect for modeling student loans, car loans, or any fixed payment that ends at a specific age. Your expense charts will show the step-down clearly.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Retirement Expenses & Income -->
+            <div class="collapsible-section">
+                <div class="section-header expenses" onclick="toggleSection(this)">
+                    <div>Retirement Expenses & Income</div>
+                    <span class="section-toggle expanded"></span>
+                </div>
+                <div class="section-content">
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Annual Living Expenses ($) <span class="label-note">(today's dollars, excludes healthcare & mortgage above)</span></label>
+                            <input type="text" id="annualExpenses" value="0" step="1000">
+                        </div>
+                        <div class="input-group">
+                            <label>Social Security (Annual $)</label>
+                            <input type="text" id="socialSecurity" value="0" step="1000">
+                        </div>
+                        <div class="input-group">
+                            <label>Social Security Start Age</label>
+                            <input type="number" id="ssStartAge" value="67" min="62" max="70">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- One-Time Expenses -->
+            <div class="collapsible-section">
+                <div class="section-header onetimes collapsed" onclick="toggleSection(this)">
+                    <div>One-Time Expenses</div>
+                    <span class="section-toggle"></span>
+                </div>
+                <div class="section-content collapsed">
+                    <div class="input-grid" style="grid-template-columns: 1fr;">
+                        <div>
+                            <table class="expense-table" id="expenseTable">
+                                <thead>
+                                    <tr>
+                                        <th>Age</th>
+                                        <th>Description</th>
+                                        <th>Amount ($)</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="expenseTableBody">
+                                    <!-- Expenses will be added here -->
+                                </tbody>
+                            </table>
+                            <button class="button small" onclick="addExpense()">+ Add One-Time Expense</button>
+                        </div>
+                    </div>
+                    <div class="info-box">
+                        <h4>One-Time Expense Examples</h4>
+                        <p style="font-size: 14px;">New car ($40k at age 55), Home renovation ($80k at age 60), Wedding gift ($25k at age 58), Travel year ($50k at age 65)</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Market Assumptions -->
+            <div class="collapsible-section">
+                <div class="section-header market collapsed" onclick="toggleSection(this)">
+                    <div>Market Assumptions</div>
+                    <span class="section-toggle"></span>
+                </div>
+                <div class="section-content collapsed">
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Expected Investment Return (%) <span class="label-note">(average)</span></label>
+                            <input type="number" id="returnRate" value="8" step="0.5" min="0" max="15">
+                        </div>
+                        <div class="input-group">
+                            <label>Return Volatility / Std Dev (%) <span class="label-note">(typical: 15-18%)</span></label>
+                            <input type="number" id="stdDev" value="16" step="0.5" min="0" max="30">
+                        </div>
+                        <div class="input-group">
+                            <label>Inflation Rate (%)</label>
+                            <input type="number" id="inflationRate" value="3" step="0.1" min="0" max="10">
+                        </div>
+                        <div class="input-group">
+                            <label>Monte Carlo Simulations <span class="label-note">(accuracy vs speed)</span></label>
+                            <select id="mcSimCount">
+                                <option value="500">Quick (500 sims) - 10 sec</option>
+                                <option value="1000">Standard (1,000 sims) - 20 sec</option>
+                                <option value="2000">Deep Analysis (2,000 sims) - 40 sec</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stress Test -->
+            <div class="collapsible-section">
+                <div class="section-header stress collapsed" onclick="toggleSection(this)">
+                    <div>Stress Test: Sequence of Returns Risk (Optional)</div>
+                    <span class="section-toggle"></span>
+                </div>
+                <div class="section-content collapsed">
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label>Stress Test Scenario</label>
+                            <select id="stressScenario">
+                                <option value="none">None - Normal Monte Carlo</option>
+                                <option value="nearterm">Near-Term (2026-2030) Market Stagnation</option>
+                                <option value="earlyretirement">Early Retirement Years - Worst Case</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Forced Return During Stress (%) <span class="label-note">(0% = stagnation, -10% = crash)</span></label>
+                            <input type="number" id="stressReturn" value="0" step="1" min="-30" max="10">
+                        </div>
+                        <div class="input-group">
+                            <label>Stress Period Duration (Years)</label>
+                            <input type="number" id="stressDuration" value="5" min="1" max="15">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            
+                        <button class="button" onclick="calculateFullAnalysis()" id="fullAnalysisButton"> Calculate Full Analysis (with Monte Carlo)</button>
+            <button class="button secondary" onclick="calculate()" id="quickButton"> Quick Calculate (deterministic only)</button>
+            <button class="button secondary" onclick="exportToCSV()" id="exportButton" style="display: none;"> Export to CSV</button>
+        </div>
+        
+        
+        <!-- Earliest Retirement Age Calculator Panel -->
+        <div class="panel">
+            <div class="panel-title"> Find Your Earliest Retirement Age</div>
+            <p style="margin-bottom: 20px; color: #555; font-size: 14px;">
+                This tool will search for the earliest age you can retire with different success rates. 
+                It runs multiple Monte Carlo simulations to test different retirement ages.
+            </p>
+            
+            <div class="input-grid">
+                <div class="input-group">
+                    <label style="font-weight: 600; margin-bottom: 10px;">Retirement Type</label>
+                    <div>
+                        <input type="radio" id="retirementTypeFull" name="retirementType" value="full" checked>
+                        <label for="retirementTypeFull" style="font-weight: normal; margin-left: 5px;">Full Retirement (no work income)</label>
+                    </div>
+                    <div style="margin-top: 8px;">
+                        <input type="radio" id="retirementTypePartTime" name="retirementType" value="parttime">
+                        <label for="retirementTypePartTime" style="font-weight: normal; margin-left: 5px;">Part-Time Transition (with income)</label>
+                    </div>
+                </div>
+                
+                <div class="input-group" id="partTimeIncomeGroup" style="display: none;">
+                    <label>Part-Time Annual Income ($)</label>
+                    <input type="text" id="earlyRetirePartTimeIncome" value="50000" step="1000" min="0">
+                </div>
+            </div>
+            
+            <div style="margin: 20px 0;">
+                <label style="font-weight: 600; display: block; margin-bottom: 10px;">Target Success Rates to Test</label>
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    <div>
+                        <input type="checkbox" id="testRate50" checked>
+                        <label for="testRate50" style="font-weight: normal; margin-left: 5px;">50% (Aggressive)</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="testRate75" checked>
+                        <label for="testRate75" style="font-weight: normal; margin-left: 5px;">75% (Moderate)</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="testRate85" checked>
+                        <label for="testRate85" style="font-weight: normal; margin-left: 5px;">85% (Industry standard) </label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="testRate95" checked>
+                        <label for="testRate95" style="font-weight: normal; margin-left: 5px;">95% (Very conservative)</label>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="button" onclick="runEarliestRetirementSearch()" id="earlyRetireButton"> Search for Earliest Retirement Ages</button>
+            
+            <div id="earlyRetireProgress" style="display: none; margin-top: 20px;">
+                <h4 style="margin-bottom: 10px;"> Searching for earliest retirement ages...</h4>
+                <div class="progress-bar"><div class="progress-fill" id="earlyRetireProgressBar">0%</div></div>
+                <div id="earlyRetireProgressText" style="margin-top: 10px; font-size: 14px; color: #555;"></div>
+            </div>
+            
+            <div id="earlyRetireResults" style="display: none; margin-top: 30px;"></div>
+        </div>
+        
+        <div class="panel" id="resultsPanel" style="display: none;">
+            <div class="panel-title">Step 2: Your Retirement Projection</div>
+            
+            <!-- TL;DR Summary Section -->
+            <div class="tldr-section" id="tldrSection"></div>
+            
+            <div class="results" id="resultsCards"></div>
+            <div id="phaseNote"></div>
+            <div id="inflationNote"></div>
+            <div id="irmaaWarnings"></div>
+            <div id="messageBox"></div>
+            <div class="chart-container" id="portfolioChart"></div>
+            <div class="chart-container" id="expensesChart"></div>
+            <div class="chart-container" id="incomeSourcesChart"></div>
+            <div class="chart-container" id="taxChart"></div>
+            <div id="taxStrategyNote"></div>
+        </div>
+        
+        <div class="panel" id="mcPanel" style="display: none;">
+            <div class="panel-title">Step 3: Monte Carlo Analysis</div>
+            <div id="mcProgress" style="display: none;">
+                <div class="progress-bar"><div class="progress-fill" id="mcProgressBar">0%</div></div>
+            </div>
+            <div id="mcResults" style="display: none;">
+                <div class="results">
+                    <div class="result-card" id="mcSuccessCard">
+                        <div class="result-label">Success Rate</div>
+                        <div class="result-value" id="mcSuccessRate">--</div>
+                        <div class="result-subtitle">Portfolio lasts to age <span id="mcLifeExpectancy">--</span></div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-label">Worst Case (10th)</div>
+                        <div class="result-value" id="mc10th">--</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-label">Median (50th)</div>
+                        <div class="result-value" id="mc50th">--</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-label">Best Case (90th)</div>
+                        <div class="result-value" id="mc90th">--</div>
+                    </div>
+                </div>
+                <div id="mcMessage"></div>
+                <div class="chart-container" id="mcChart"></div>
+                <div class="chart-container" id="mcDistribution"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let plotlyLoaded = false;
+        let lastInputs = null;
+        let oneTimeExpenses = [];
+        let lastDeterministicResults = null;  // Store results for CSV export
+        
+        setTimeout(() => { if (typeof Plotly !== 'undefined') plotlyLoaded = true; }, 1000);
+        
+        // ========================================
+        // COMMA FORMATTING FOR DOLLAR INPUTS
+        // ========================================
+        
+        function formatNumberWithCommas(value) {
+            // Remove existing commas and non-numeric characters except decimal point
+            const num = value.toString().replace(/,/g, '');
+            
+            // Split into integer and decimal parts
+            const parts = num.split('.');
+            
+            // Add commas to integer part
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            
+            // Rejoin with decimal if it exists
+            return parts.join('.');
+        }
+        
+        function removeCommas(value) {
+            return value.toString().replace(/,/g, '');
+        }
+        
+        function setupCommaFormatting(inputId) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            
+            // Validate input - only allow numbers, commas, and decimal point
+            input.addEventListener('input', function() {
+                // Remove any characters that aren't digits, commas, or decimal point
+                let value = this.value.replace(/[^0-9,.]/g, '');
+                
+                // Only allow one decimal point
+                const parts = value.split('.');
+                if (parts.length > 2) {
+                    value = parts[0] + '.' + parts.slice(1).join('');
+                }
+                
+                this.value = value;
+            });
+            
+            // Format on blur (when user leaves the field)
+            input.addEventListener('blur', function() {
+                if (this.value) {
+                    const cleanValue = removeCommas(this.value);
+                    if (!isNaN(cleanValue) && cleanValue !== '') {
+                        this.value = formatNumberWithCommas(cleanValue);
+                    } else if (this.value) {
+                        // If invalid, clear the field
+                        this.value = '';
+                    }
+                }
+            });
+            
+            // Remove commas on focus (when user starts editing)
+            input.addEventListener('focus', function() {
+                this.value = removeCommas(this.value);
+            });
+            
+            // Format initial value if it exists
+            if (input.value) {
+                input.value = formatNumberWithCommas(input.value);
+            }
+        }
+        
+        // Apply comma formatting to all dollar input fields
+        window.addEventListener('DOMContentLoaded', function() {
+            const dollarInputs = [
+                'currentPortfolio',
+                'traditionalValue',
+                'rothValue',
+                'taxableValue',
+                'traditionalContributions',
+                'rothContributions',
+                'taxableContributions',
+                'healthcareCosts',
+                'medicareSupplement',
+                'mortgagePayment',
+                'annualExpenses',
+                'socialSecurity',
+                'partTimeIncome',
+                'earlyRetirePartTimeIncome'
+            ];
+            
+            dollarInputs.forEach(id => setupCommaFormatting(id));
+            
+            // Auto-highlight all input fields on focus for faster data entry
+            document.querySelectorAll('input[type="number"], input[type="text"]').forEach(input => {
+                // On focus (tab into field), select all text
+                input.addEventListener('focus', function() {
+                    this.select();
+                });
+                
+                // On click (mouse click), also select (handles multiple clicks)
+                input.addEventListener('click', function() {
+                    this.select();
+                });
+            });
+        });
+        
+        function randomNormal(mean, stdDev) {
+            let u1 = Math.random(), u2 = Math.random();
+            let z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+            return z0 * stdDev + mean;
+        }
+        
+        function addExpense() {
+            const age = prompt("At what age will this expense occur?");
+            if (!age || isNaN(age)) return;
+            
+            const description = prompt("Description (e.g., 'New car', 'Home renovation'):");
+            if (!description) return;
+            
+            const amount = prompt("Amount ($):");
+            if (!amount || isNaN(amount)) return;
+            
+            const expense = {
+                age: parseInt(age),
+                description: description,
+                amount: parseFloat(amount)
+            };
+            
+            oneTimeExpenses.push(expense);
+            updateExpenseTable();
+        }
+        
+        function removeExpense(index) {
+            oneTimeExpenses.splice(index, 1);
+            updateExpenseTable();
+        }
+        
+
+        function exportToCSV() {
+            if (!lastDeterministicResults || !lastInputs) {
+                alert('Please run a calculation first before exporting.');
+                return;
+            }
+            
+            try {
+                const rows = [];
+                rows.push(['=== INPUT PARAMETERS ===']);
+                rows.push(['Parameter', 'Value']);
+                rows.push(['Current Age', lastInputs.currentAge]);
+                rows.push(['Part-Time Start Age', lastInputs.partTimeStartAge]);
+                rows.push(['Full Retirement Age', lastInputs.fullRetirementAge]);
+                rows.push(['Life Expectancy', lastInputs.lifeExpectancy]);
+                rows.push(['Filing Status', lastInputs.filingStatus]);
+                rows.push(['Max Roth Conversion Tax Rate', (lastInputs.maxConversionRate * 100).toFixed(1) + '%']);
+                rows.push(['Cost Basis Percentage', (lastInputs.costBasisPercent * 100).toFixed(0) + '%']);
+                rows.push(['Part-Time Annual Income', lastInputs.partTimeIncome.toFixed(2)]);
+                rows.push(['Annual Living Expenses (Today)', lastInputs.annualExpensesToday.toFixed(2)]);
+                rows.push(['Healthcare Costs Pre-65', lastInputs.healthcareCosts.toFixed(2)]);
+                rows.push(['Medicare Supplement Post-65', lastInputs.medicareSupplement.toFixed(2)]);
+                rows.push(['Number of People (IRMAA)', lastInputs.numPeople]);
+                rows.push(['Social Security Annual', lastInputs.socialSecurity.toFixed(2)]);
+                rows.push(['Social Security Start Age', lastInputs.ssStartAge]);
+                rows.push(['Mortgage/Loan Payment', lastInputs.mortgagePayment.toFixed(2)]);
+                rows.push(['Mortgage Payoff Age', lastInputs.mortgagePayoffAge]);
+                rows.push(['Expected Return Rate', (lastInputs.returnRate * 100).toFixed(1) + '%']);
+                rows.push(['Inflation Rate', (lastInputs.inflationRate * 100).toFixed(1) + '%']);
+                rows.push(['Starting Portfolio - Traditional', lastInputs.traditionalValue.toFixed(2)]);
+                rows.push(['Starting Portfolio - Roth', lastInputs.rothValue.toFixed(2)]);
+                rows.push(['Starting Portfolio - Taxable', lastInputs.taxableValue.toFixed(2)]);
+                rows.push(['Starting Portfolio - Total', lastInputs.currentPortfolio.toFixed(2)]);
+                rows.push([]);
+                rows.push(['=== YEAR-BY-YEAR PROJECTION ===']);
+                rows.push(['Year', 'Age', 'Phase', 'Total Portfolio', 'Traditional', 'Roth', 'Taxable', 'Living Expenses', 'Healthcare', 'Mortgage', 'One-Time Expenses', 'Total Expenses', 'Part-Time Income', 'Traditional WD', 'Roth WD', 'Taxable WD', 'Social Security', 'Total Income', 'Ordinary Income Tax', 'Capital Gains Tax', 'SS Tax', 'Part-Time Tax', 'IRMAA', 'NIIT', 'Total Tax', 'Standard Deduction', 'Bonus Senior Deduction', 'Taxable Ordinary Income', 'Tax Bracket Limit (Max Rate)', 'Room in Bracket', 'Capital Gains Amount', 'Taxable Income for CG Rate', 'Effective Ord Tax Rate %', 'Effective CG Rate %', 'MAGI', 'MAGI - Ordinary', 'MAGI - Capital Gains', 'MAGI - SS Taxable', 'IRMAA Bracket', 'IRMAA Lookback Year', 'IRMAA Lookback MAGI', 'NIIT Threshold', 'NIIT Excess MAGI', 'Roth Conversion', 'RMD Required?', 'SS Taxable %', 'Notes']);
+                const expenseMap = {}, incomeMap = {}, taxMap = {};
+                if (lastDeterministicResults.expenseBreakdown) lastDeterministicResults.expenseBreakdown.forEach(e => expenseMap[e.year] = e);
+                if (lastDeterministicResults.incomeBreakdown) lastDeterministicResults.incomeBreakdown.forEach(i => incomeMap[i.year] = i);
+                if (lastDeterministicResults.taxBreakdown) lastDeterministicResults.taxBreakdown.forEach(t => taxMap[t.year] = t);
+                const magiHistory = {};
+                lastDeterministicResults.taxBreakdown.forEach(t => magiHistory[t.year] = t.magi || 0);
+                lastDeterministicResults.allData.forEach(d => {
+                    const expense = expenseMap[d.year] || {}, income = incomeMap[d.year] || {}, tax = taxMap[d.year] || {};
+                    const yearsFromStart = d.year - new Date().getFullYear();
+                    const currentPrimaryAge = lastInputs.currentAge + yearsFromStart;
+                    const currentSpouseAge = lastInputs.spouseAge ? lastInputs.spouseAge + yearsFromStart : null;
+                    const standardDeduction = getStandardDeduction(d.year, lastInputs.filingStatus, currentPrimaryAge, currentSpouseAge, lastInputs.numPeople);
+                    const ordinaryBrackets = getTaxBrackets(d.year, lastInputs.filingStatus);
+                    let maxBracketLimit = 0;
+                    for (let bracket of ordinaryBrackets) { if (bracket.rate <= lastInputs.maxConversionRate) maxBracketLimit = bracket.limit; else break; }
+                    const partTimeIncome = income.partTimeIncome || 0, traditionalWD = income.traditionalWithdrawal || 0, ssIncome = income.socialSecurity || 0;
+                    const ssTaxableAmount = tax.ssTax > 0 ? calculateSocialSecurityTaxable(ssIncome, partTimeIncome + traditionalWD, lastInputs.filingStatus) : 0;
+                    const ssTaxablePercent = ssIncome > 0 ? (ssTaxableAmount / ssIncome * 100) : 0;
+                    const ordinaryIncome = partTimeIncome + traditionalWD + ssTaxableAmount;
+                    const taxableWD = income.taxableWithdrawal || 0, capitalGains = taxableWD * (1 - lastInputs.costBasisPercent);
+                    const taxableOrdinary = Math.max(0, ordinaryIncome - standardDeduction), roomInBracket = Math.max(0, maxBracketLimit - taxableOrdinary);
+                    const taxableIncomeForCG = taxableOrdinary + capitalGains;
+                    const effectiveOrdRate = ordinaryIncome > 0 ? ((tax.traditionalTax || 0) + (tax.ssTax || 0) + (tax.partTimeTax || 0)) / ordinaryIncome * 100 : 0;
+                    const effectiveCGRate = capitalGains > 0 ? (tax.taxableTax || 0) / capitalGains * 100 : 0;
+                    const magi = tax.magi || 0, lookbackYear = d.year - 2, lookbackMAGI = magiHistory[lookbackYear] || 0;
+                    let irmaaBracket = 'N/A';
+                    if (d.age >= 65 && lookbackMAGI > 0) { const brackets = getIRMAABrackets(d.year, lastInputs.filingStatus); for (let i = 0; i < brackets.length; i++) { if (lookbackMAGI <= brackets[i].limit) { irmaaBracket = (i + 1).toString(); break; } } }
+                    const niitThresholds = { 'married': 250000, 'single': 200000, 'hoh': 200000 }, niitThreshold = niitThresholds[lastInputs.filingStatus] || 250000, niitExcess = Math.max(0, magi - niitThreshold);
+                    const rmdRequired = d.age >= 73 ? 'Yes' : 'No';
+                    let notes = [];
+                    if (tax.rothConversionAmount > 0) notes.push('Roth Conv');
+                    if (d.age >= 73) notes.push('RMD');
+                    if ((tax.irmaa || 0) > 0) notes.push('IRMAA');
+                    if ((tax.niitTax || 0) > 0) notes.push('NIIT');
+                    rows.push([d.year, d.age, d.phase || '', (d.portfolio || 0).toFixed(2), (d.traditional || 0).toFixed(2), (d.roth || 0).toFixed(2), (d.taxable || 0).toFixed(2), (expense.livingExpenses || 0).toFixed(2), (expense.healthcareCost || 0).toFixed(2), (expense.mortgagePayment || 0).toFixed(2), (expense.oneTimeExpense || 0).toFixed(2), (expense.totalExpenses || 0).toFixed(2), partTimeIncome.toFixed(2), traditionalWD.toFixed(2), (income.rothWithdrawal || 0).toFixed(2), taxableWD.toFixed(2), ssIncome.toFixed(2), (partTimeIncome + traditionalWD + (income.rothWithdrawal || 0) + taxableWD + ssIncome).toFixed(2), (tax.traditionalTax || 0).toFixed(2), (tax.taxableTax || 0).toFixed(2), (tax.ssTax || 0).toFixed(2), (tax.partTimeTax || 0).toFixed(2), (tax.irmaa || 0).toFixed(2), (tax.niitTax || 0).toFixed(2), (tax.totalTax || 0).toFixed(2), standardDeduction.toFixed(2), (tax.bonusDeduction || 0).toFixed(2), taxableOrdinary.toFixed(2), maxBracketLimit.toFixed(2), roomInBracket.toFixed(2), capitalGains.toFixed(2), taxableIncomeForCG.toFixed(2), effectiveOrdRate.toFixed(2), effectiveCGRate.toFixed(2), magi.toFixed(2), ordinaryIncome.toFixed(2), capitalGains.toFixed(2), ssTaxableAmount.toFixed(2), irmaaBracket, lookbackYear, lookbackMAGI.toFixed(2), niitThreshold.toFixed(2), niitExcess.toFixed(2), (tax.rothConversionAmount || 0).toFixed(2), rmdRequired, ssTaxablePercent.toFixed(1), notes.join('; ')]);
+                });
+                rows.push([]);
+                rows.push(['=== SUMMARY STATISTICS ===']);
+                rows.push(['Metric', 'Value']);
+                const totalTaxes = lastDeterministicResults.taxBreakdown.reduce((sum, t) => sum + t.totalTax, 0);
+                const totalIRMAA = lastDeterministicResults.taxBreakdown.reduce((sum, t) => sum + t.irmaa, 0);
+                const totalNIIT = lastDeterministicResults.taxBreakdown.reduce((sum, t) => sum + (t.niitTax || 0), 0);
+                const totalRothConversions = lastDeterministicResults.taxBreakdown.reduce((sum, t) => sum + (t.rothConversionAmount || 0), 0);
+                rows.push(['Success', lastDeterministicResults.success ? 'Yes' : 'No']);
+                rows.push(['Portfolio at Part-Time Start', lastDeterministicResults.portfolioAtPartTime.toFixed(2)]);
+                rows.push(['Portfolio at Full Retirement', lastDeterministicResults.portfolioAtFullRetirement.toFixed(2)]);
+                rows.push(['Final Portfolio Value', lastDeterministicResults.finalPortfolio.toFixed(2)]);
+                rows.push(['Total Lifetime Taxes Paid', totalTaxes.toFixed(2)]);
+                rows.push(['Total IRMAA Paid', totalIRMAA.toFixed(2)]);
+                rows.push(['Total NIIT Paid', totalNIIT.toFixed(2)]);
+                rows.push(['Total Roth Conversions', totalRothConversions.toFixed(2)]);
+                if (lastDeterministicResults.portfolioDepletedAge) rows.push(['Portfolio Depleted at Age', lastDeterministicResults.portfolioDepletedAge]);
+                const csvContent = rows.map(row => row.join(',')).join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                const now = new Date();
+                const dateStr = now.toISOString().split('T')[0];
+                link.setAttribute('download', `retirement_projection_enhanced_${dateStr}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                console.log('Enhanced CSV export successful');
+            } catch (error) {
+                console.error('Error exporting CSV:', error);
+                alert('Error exporting CSV: ' + error.message);
+            }
+        }
+
+        function updateExpenseTable() {
+            const tbody = document.getElementById('expenseTableBody');
+            if (oneTimeExpenses.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #7f8c8d;">No one-time expenses added yet</td></tr>';
+                return;
+            }
+            
+            oneTimeExpenses.sort((a, b) => a.age - b.age);
+            
+            tbody.innerHTML = oneTimeExpenses.map((expense, index) => `
+                <tr class="expense-row">
+                    <td>${expense.age}</td>
+                    <td>${expense.description}</td>
+                    <td>$${expense.amount.toLocaleString()}</td>
+                    <td><button class="button small danger" onclick="removeExpense(${index})">Remove</button></td>
+                </tr>
+            `).join('');
+        }
+        
+        function getInputs() {
+            // Helper to parse value with commas removed
+            const parseValue = (id) => parseFloat(removeCommas(document.getElementById(id).value));
+            const parseIntValue = (id) => parseInt(removeCommas(document.getElementById(id).value));
+            
+            const trad = parseValue('traditionalValue');
+            const roth = parseValue('rothValue');
+            const taxable = parseValue('taxableValue');
+            const total = trad + roth + taxable;
+            
+            document.getElementById('currentPortfolio').value = formatNumberWithCommas(total);
+            
+            return {
+                currentPortfolio: total,
+                traditionalValue: trad,
+                rothValue: roth,
+                taxableValue: taxable,
+                traditionalContributions: parseValue('traditionalContributions'),
+                rothContributions: parseValue('rothContributions'),
+                taxableContributions: parseValue('taxableContributions'),
+                currentAge: parseIntValue('currentAge'),
+                spouseAge: document.getElementById('spouseAge').value ? parseIntValue('spouseAge') : null,
+                partTimeStartAge: parseIntValue('partTimeStartAge'),
+                fullRetirementAge: parseIntValue('fullRetirementAge'),
+                fullTimeIncome: parseValue('fullTimeIncome'),
+                partTimeIncome: parseValue('partTimeIncome'),
+                annualExpensesToday: parseValue('annualExpenses'),
+                healthcareCosts: parseValue('healthcareCosts'),
+                medicareSupplement: parseValue('medicareSupplement'),
+                numPeople: parseIntValue('numPeople'),
+                returnRate: parseFloat(document.getElementById('returnRate').value) / 100,
+                stdDev: parseFloat(document.getElementById('stdDev').value) / 100,
+                inflationRate: parseFloat(document.getElementById('inflationRate').value) / 100,
+                socialSecurity: parseValue('socialSecurity'),
+                ssStartAge: parseIntValue('ssStartAge'),
+                lifeExpectancy: parseIntValue('lifeExpectancy'),
+                mortgagePayment: parseValue('mortgagePayment'),
+                mortgagePayoffAge: parseIntValue('mortgagePayoffAge'),
+                stressScenario: document.getElementById('stressScenario').value,
+                stressReturn: parseFloat(document.getElementById('stressReturn').value) / 100,
+                stressDuration: parseIntValue('stressDuration'),
+                filingStatus: document.getElementById('filingStatus').value,
+                costBasisPercent: parseFloat(document.getElementById('costBasisPercent').value) / 100,
+                maxConversionRate: parseFloat(document.getElementById('maxConversionRate').value) / 100,
+                oneTimeExpenses: [...oneTimeExpenses]
+            };
+        }
+        
+        function getStandardDeduction(year, filingStatus, primaryAge = null, spouseAge = null, numPeople = 1) {
+            const baseYear = 2025;
+            const inflationRate = 0.025;
+            const yearsSince2025 = year - baseYear;
+            const inflationMultiplier = Math.pow(1 + inflationRate, yearsSince2025);
+            
+            // UPDATED: One Big Beautiful Bill Act (July 2025) - New base standard deductions
+            const standardDeduction2025 = {
+                married: 31500,  // Was 29200
+                single: 15750,   // Was 14600
+                hoh: 23625       // Was 21900
+            };
+            
+            // UPDATED: Additional standard deduction for age 65+ per person (2025 values)
+            const additionalDeduction2025 = {
+                married: 1600,  // Was 1550 - per person
+                single: 2000,   // Was 1950
+                hoh: 2000       // Was 1950
+            };
+            
+            let totalDeduction = standardDeduction2025[filingStatus] * inflationMultiplier;
+            
+            // Add age-based additional deduction - CORRECTLY APPLIES PER PERSON
+            if (filingStatus === 'married' && numPeople === 2) {
+                // For married couples, check each spouse separately
+                const additionalAmount = additionalDeduction2025.married * inflationMultiplier;
+                
+                if (primaryAge !== null && primaryAge >= 65) {
+                    totalDeduction += additionalAmount;
+                }
+                
+                if (spouseAge !== null && spouseAge >= 65) {
+                    totalDeduction += additionalAmount;
+                }
+            } else {
+                // For single/HOH, only check primary taxpayer
+                if (primaryAge !== null && primaryAge >= 65) {
+                    const additionalAmount = additionalDeduction2025[filingStatus] * inflationMultiplier;
+                    totalDeduction += additionalAmount;
+                }
+            }
+            
+            return totalDeduction;
+        }
+        
+        function getBonusSeniorDeduction(year, filingStatus, primaryAge, spouseAge, magi, numPeople = 1) {
+            // NEW: $6,000 bonus senior deduction from One Big Beautiful Bill Act
+            // Effective 2025-2028 tax years only
+            if (year < 2025 || year > 2028) {
+                return 0;
+            }
+            
+            const baseYear = 2025;
+            const inflationRate = 0.025;
+            const yearsSince2025 = year - baseYear;
+            const inflationMultiplier = Math.pow(1 + inflationRate, yearsSince2025);
+            
+            // Base bonus amount per qualifying individual
+            const bonusPerPerson = 6000 * inflationMultiplier;
+            
+            // MAGI thresholds for phase-out
+            const thresholds = {
+                married: { start: 150000, end: 250000 },
+                single: { start: 75000, end: 175000 },
+                hoh: { start: 75000, end: 175000 }
+            };
+            
+            const threshold = thresholds[filingStatus];
+            
+            // Count how many people qualify (age 65+)
+            let qualifyingPeople = 0;
+            if (primaryAge >= 65) qualifyingPeople++;
+            if (filingStatus === 'married' && numPeople === 2 && spouseAge !== null && spouseAge >= 65) {
+                qualifyingPeople++;
+            }
+            
+            if (qualifyingPeople === 0) {
+                return 0;
+            }
+            
+            // Calculate total potential bonus
+            let totalBonus = bonusPerPerson * qualifyingPeople;
+            
+            // Apply phase-out if MAGI exceeds threshold
+            if (magi <= threshold.start) {
+                // Full deduction
+                return totalBonus;
+            } else if (magi >= threshold.end) {
+                // Completely phased out
+                return 0;
+            } else {
+                // Partial phase-out: reduce by 6Ã‚Â¢ for every $1 over threshold
+                const excessIncome = magi - threshold.start;
+                const reduction = excessIncome * 0.06;
+                const phasedBonus = Math.max(0, totalBonus - reduction);
+                return phasedBonus;
+            }
+        }
+        
+        function getTaxBrackets(year, filingStatus) {
+            const baseYear = 2025;
+            const inflationRate = 0.025;
+            const yearsSince2025 = year - baseYear;
+            const inflationMultiplier = Math.pow(1 + inflationRate, yearsSince2025);
+            
+            const brackets2025 = {
+                married: [
+                    { limit: 23200, rate: 0.10 },
+                    { limit: 94300, rate: 0.12 },
+                    { limit: 201050, rate: 0.22 },
+                    { limit: 383900, rate: 0.24 },
+                    { limit: 487450, rate: 0.32 },
+                    { limit: 731200, rate: 0.35 },
+                    { limit: Infinity, rate: 0.37 }
+                ],
+                single: [
+                    { limit: 11600, rate: 0.10 },
+                    { limit: 47150, rate: 0.12 },
+                    { limit: 100525, rate: 0.22 },
+                    { limit: 191950, rate: 0.24 },
+                    { limit: 243725, rate: 0.32 },
+                    { limit: 609350, rate: 0.35 },
+                    { limit: Infinity, rate: 0.37 }
+                ],
+                hoh: [
+                    { limit: 16550, rate: 0.10 },
+                    { limit: 63100, rate: 0.12 },
+                    { limit: 100500, rate: 0.22 },
+                    { limit: 191950, rate: 0.24 },
+                    { limit: 243700, rate: 0.32 },
+                    { limit: 609350, rate: 0.35 },
+                    { limit: Infinity, rate: 0.37 }
+                ]
+            };
+            
+            const brackets = brackets2025[filingStatus].map(b => ({
+                limit: b.limit === Infinity ? Infinity : b.limit * inflationMultiplier,
+                rate: b.rate
+            }));
+            
+            return brackets;
+        }
+        
+        function getCapitalGainsBrackets(year, filingStatus) {
+            const baseYear = 2025;
+            const inflationRate = 0.025;
+            const yearsSince2025 = year - baseYear;
+            const inflationMultiplier = Math.pow(1 + inflationRate, yearsSince2025);
+            
+            const brackets2025 = {
+                married: [
+                    { limit: 94050, rate: 0.00 },
+                    { limit: 583750, rate: 0.15 },
+                    { limit: Infinity, rate: 0.20 }
+                ],
+                single: [
+                    { limit: 47025, rate: 0.00 },
+                    { limit: 518900, rate: 0.15 },
+                    { limit: Infinity, rate: 0.20 }
+                ],
+                hoh: [
+                    { limit: 63000, rate: 0.00 },
+                    { limit: 551350, rate: 0.15 },
+                    { limit: Infinity, rate: 0.20 }
+                ]
+            };
+            
+            const brackets = brackets2025[filingStatus].map(b => ({
+                limit: b.limit === Infinity ? Infinity : b.limit * inflationMultiplier,
+                rate: b.rate
+            }));
+            
+            return brackets;
+        }
+        
+        function getIRMAABrackets(year, filingStatus) {
+            const baseYear = 2025;
+            const inflationRate = 0.025;
+            const yearsSince2025 = year - baseYear;
+            const inflationMultiplier = Math.pow(1 + inflationRate, yearsSince2025);
+            
+            // 2025 IRMAA brackets (MAGI thresholds)
+            const irmaa2025 = {
+                married: [
+                    { limit: 206000, partBSurcharge: 0, partDSurcharge: 0 },
+                    { limit: 258000, partBSurcharge: 69.90, partDSurcharge: 12.90 },
+                    { limit: 322000, partBSurcharge: 174.70, partDSurcharge: 33.30 },
+                    { limit: 386000, partBSurcharge: 279.50, partDSurcharge: 53.80 },
+                    { limit: 750000, partBSurcharge: 384.30, partDSurcharge: 74.20 },
+                    { limit: Infinity, partBSurcharge: 419.30, partDSurcharge: 81.00 }
+                ],
+                single: [
+                    { limit: 103000, partBSurcharge: 0, partDSurcharge: 0 },
+                    { limit: 129000, partBSurcharge: 69.90, partDSurcharge: 12.90 },
+                    { limit: 161000, partBSurcharge: 174.70, partDSurcharge: 33.30 },
+                    { limit: 193000, partBSurcharge: 279.50, partDSurcharge: 53.80 },
+                    { limit: 500000, partBSurcharge: 384.30, partDSurcharge: 74.20 },
+                    { limit: Infinity, partBSurcharge: 419.30, partDSurcharge: 81.00 }
+                ]
+            };
+            
+            // Use single brackets for HOH
+            const brackets = irmaa2025[filingStatus === 'hoh' ? 'single' : filingStatus];
+            
+            return brackets.map(b => ({
+                limit: b.limit === Infinity ? Infinity : b.limit * inflationMultiplier,
+                partBSurcharge: b.partBSurcharge * inflationMultiplier, // FIXED: Now inflates with time
+                partDSurcharge: b.partDSurcharge * inflationMultiplier  // FIXED: Now inflates with time
+            }));
+        }
+        
+        function calculateIRMAA(magi, year, filingStatus, numPeople) {
+            const brackets = getIRMAABrackets(year, filingStatus);
+            
+            let partBSurcharge = 0;
+            let partDSurcharge = 0;
+            
+            for (let bracket of brackets) {
+                if (magi <= bracket.limit) {
+                    partBSurcharge = bracket.partBSurcharge;
+                    partDSurcharge = bracket.partDSurcharge;
+                    break;
+                }
+            }
+            
+            // Annual cost per person
+            const annualPartB = partBSurcharge * 12;
+            const annualPartD = partDSurcharge * 12;
+            const totalPerPerson = annualPartB + annualPartD;
+            
+            return {
+                perPerson: totalPerPerson,
+                total: totalPerPerson * numPeople,
+                partBSurcharge: annualPartB,
+                partDSurcharge: annualPartD
+            };
+        }
+        
+        function calculateTax(income, brackets, standardDeduction) {
+            // Apply standard deduction first
+            const taxableIncome = Math.max(0, income - standardDeduction);
+            
+            let tax = 0;
+            let previousLimit = 0;
+            
+            for (let bracket of brackets) {
+                if (taxableIncome <= previousLimit) break;
+                
+                const taxableInThisBracket = Math.min(taxableIncome, bracket.limit) - previousLimit;
+                tax += taxableInThisBracket * bracket.rate;
+                previousLimit = bracket.limit;
+            }
+            
+            return tax;
+        }
+        
+        function calculateSocialSecurityTaxable(ss, otherIncome, filingStatus) {
+            const combinedIncome = otherIncome + (ss * 0.5);
+            
+            const thresholds = {
+                married: { lower: 32000, upper: 44000 },
+                single: { lower: 25000, upper: 34000 },
+                hoh: { lower: 25000, upper: 34000 }
+            };
+            
+            const t = thresholds[filingStatus];
+            
+            if (combinedIncome <= t.lower) {
+                return 0;
+            } else if (combinedIncome <= t.upper) {
+                return ss * 0.5;
+            } else {
+                return ss * 0.85;
+            }
+        }
+        
+        function calculateOptimalRothConversion(currentOrdinaryIncome, traditionalBalance, maxRate, brackets, standardDeduction) {
+            // Account for standard deduction when calculating room in bracket
+            const taxableIncome = Math.max(0, currentOrdinaryIncome - standardDeduction);
+            
+            let roomInBracket = 0;
+            let maxBracketLimit = 0;
+            
+            // Find the LAST bracket at or below maxRate
+            for (let bracket of brackets) {
+                if (bracket.rate <= maxRate) {
+                    maxBracketLimit = bracket.limit;
+                } else {
+                    // We've gone past maxRate - stop here
+                    break;
+                }
+            }
+            
+            // Calculate room from current taxable income to the top of the maxRate bracket
+            roomInBracket = Math.max(0, maxBracketLimit - taxableIncome);
+            
+            return Math.min(roomInBracket, traditionalBalance);
+        }
+        
+        function calculateCapitalGainsTax(gains, ordinaryIncome, filingStatus, year) {
+            const capGainsBrackets = getCapitalGainsBrackets(year, filingStatus);
+            const totalIncome = ordinaryIncome + gains;
+            
+            let applicableRate = 0;
+            for (let bracket of capGainsBrackets) {
+                if (totalIncome <= bracket.limit) {
+                    applicableRate = bracket.rate;
+                    break;
+                }
+            }
+            
+            return gains * applicableRate;
+        }
+        
+
+        function calculateNIIT(magi, capitalGainsIncome, filingStatus) {
+            // Net Investment Income Tax: 3.8% on investment income when MAGI exceeds threshold
+            // Thresholds (2025): MFJ: $250k, Single/HOH: $200k, MFS: $125k
+            const thresholds = {
+                'married': 250000,
+                'single': 200000,
+                'hoh': 200000,
+                'mfs': 125000
+            };
+            
+            const threshold = thresholds[filingStatus] || 250000;
+            
+            // NIIT applies if MAGI exceeds threshold
+            if (magi <= threshold) {
+                return { niit: 0, threshold, excessMAGI: 0 };
+            }
+            
+            const excessMAGI = magi - threshold;
+            // NIIT is 3.8% of the LESSER of: (1) net investment income, or (2) excess MAGI
+            const niitBase = Math.min(capitalGainsIncome, excessMAGI);
+            const niit = niitBase * 0.038;
+            
+            return { 
+                niit, 
+                threshold, 
+                excessMAGI,
+                niitBase,
+                rate: 0.038
+            };
+        }
+
+                function projectRetirement(inputs, useRandom = false) {
+            const currentYear = new Date().getFullYear();
+            let stressStart = null, stressEnd = null;
+            
+            if (inputs.stressScenario === 'nearterm') {
+                stressStart = currentYear + 1;
+                stressEnd = currentYear + inputs.stressDuration;
+            } else if (inputs.stressScenario === 'earlyretirement') {
+                const retYear = currentYear + (inputs.fullRetirementAge - inputs.currentAge);
+                stressStart = retYear;
+                stressEnd = retYear + inputs.stressDuration - 1;
+            }
+            
+            function getReturn(year) {
+                if (stressStart && year >= stressStart && year <= stressEnd) return inputs.stressReturn;
+                return useRandom ? randomNormal(inputs.returnRate, inputs.stdDev) : inputs.returnRate;
+            }
+            
+            let traditional = inputs.traditionalValue;
+            let roth = inputs.rothValue;
+            let taxable = inputs.taxableValue;
+            let portfolio = traditional + roth + taxable;
+            
+            const allData = [];
+            const incomeBreakdown = [];
+            const taxBreakdown = [];
+            const expenseBreakdown = [];
+            const magiHistory = {}; // Track MAGI for IRMAA (2-year lookback)
+            const irmaaWarnings = [];
+            const niitWarnings = [];
+            
+            // Phase 1: Full-time work (with Roth conversions)
+            const yearsToPartTime = inputs.partTimeStartAge - inputs.currentAge;
+            
+            for (let y = 0; y < yearsToPartTime; y++) {
+                const year = currentYear + y;
+                const age = inputs.currentAge + y;
+                
+                allData.push({ 
+                    year, 
+                    age, 
+                    portfolio, 
+                    traditional,
+                    roth,
+                    taxable,
+                    phase: 'Working Full-Time' 
+                });
+                
+                // Track expenses during working years
+                const yearsFromStart = year - currentYear;
+                    const livingExpenses = inputs.annualExpensesToday * Math.pow(1 + inputs.inflationRate, yearsFromStart);
+                    const healthcareCost = age < 65 ? 
+                        inputs.healthcareCosts * Math.pow(1 + inputs.inflationRate, yearsFromStart) :
+                        inputs.medicareSupplement * Math.pow(1 + inputs.inflationRate, yearsFromStart);
+                    
+                    // Check for mortgage payment
+                    const mortgagePayment = age < inputs.mortgagePayoffAge ? 
+                        inputs.mortgagePayment * Math.pow(1 + inputs.inflationRate, yearsFromStart) : 0;
+                    
+                    // Check for one-time expenses
+                    const oneTimeExpense = inputs.oneTimeExpenses
+                        .filter(e => e.age === age)
+                        .reduce((sum, e) => sum + e.amount, 0);
+                    
+                    const totalExpenses = livingExpenses + healthcareCost + mortgagePayment + oneTimeExpense;
+                    
+                    expenseBreakdown.push({
+                        year,
+                        age,
+                        livingExpenses,
+                        healthcareCost,
+                        mortgagePayment,
+                        oneTimeExpense,
+                        totalExpenses
+                    });
+                    
+                    let rothConversionAmount = 0;
+                    let traditionalWithdrawal = 0;
+                    
+                    // Roth conversions during full-time work (if there's income and traditional balance)
+                    if (age < 73 && traditional > 0 && inputs.fullTimeIncome > 0) {
+                        const ordinaryBrackets = getTaxBrackets(year, inputs.filingStatus);
+                        const yearsFromCurrent = year - currentYear;
+                        const currentPrimaryAge = inputs.currentAge + yearsFromCurrent;
+                        const currentSpouseAge = inputs.spouseAge ? inputs.spouseAge + yearsFromCurrent : null;
+                        const standardDeduction = getStandardDeduction(year, inputs.filingStatus, currentPrimaryAge, currentSpouseAge, inputs.numPeople);
+                        const currentOrdinaryIncome = inputs.fullTimeIncome;
+                        
+                        const optimalConversion = calculateOptimalRothConversion(
+                            currentOrdinaryIncome,
+                            traditional,
+                            inputs.maxConversionRate,
+                            ordinaryBrackets,
+                            standardDeduction
+                        );
+                        
+                        // Only convert if there's meaningful room (at least $10k)
+                        if (optimalConversion > 10000) {
+                            rothConversionAmount = optimalConversion;
+                            traditional -= rothConversionAmount;
+                            roth += rothConversionAmount;
+                            traditionalWithdrawal = rothConversionAmount;
+                        }
+                    }
+                    
+                    // Track income (mainly full-time salary and conversions)
+                    incomeBreakdown.push({
+                        year,
+                        age,
+                        partTimeIncome: inputs.fullTimeIncome,  // Using fullTimeIncome but keeping field name for compatibility
+                        traditionalWithdrawal,
+                        rothWithdrawal: 0,
+                        taxableWithdrawal: 0,
+                        socialSecurity: 0
+                    });
+                    
+                    // Calculate taxes
+                    const ordinaryBrackets = getTaxBrackets(year, inputs.filingStatus);
+                    const yearsFromCurrent = year - currentYear;
+                        const currentPrimaryAge = inputs.currentAge + yearsFromCurrent;
+                        const currentSpouseAge = inputs.spouseAge ? inputs.spouseAge + yearsFromCurrent : null;
+                        const standardDeduction = getStandardDeduction(year, inputs.filingStatus, currentPrimaryAge, currentSpouseAge, inputs.numPeople);
+                    
+                    const fullTimeIncomeTaxable = inputs.fullTimeIncome;
+                    const traditionalTaxable = traditionalWithdrawal;
+                    
+                    const totalOrdinaryIncome = fullTimeIncomeTaxable + traditionalTaxable;
+                    
+                    // Calculate bonus senior deduction (2025-2028, $6K per person 65+, phases out based on MAGI)
+                    const bonusSeniorDeduction = getBonusSeniorDeduction(year, inputs.filingStatus, currentPrimaryAge, currentSpouseAge, totalOrdinaryIncome, inputs.numPeople);
+                    const totalDeductions = standardDeduction + bonusSeniorDeduction;
+                    const ordinaryTax = calculateTax(totalOrdinaryIncome, ordinaryBrackets, totalDeductions);
+                    
+                    
+                    const fullTimeTax = totalOrdinaryIncome > 0 ? ordinaryTax * (fullTimeIncomeTaxable / totalOrdinaryIncome) : 0;
+                    const traditionalTax = totalOrdinaryIncome > 0 ? ordinaryTax * (traditionalTaxable / totalOrdinaryIncome) : 0;
+                    
+                    // Track MAGI for IRMAA
+                    const magi = totalOrdinaryIncome;
+                    magiHistory[year] = magi;
+                    
+                    // Calculate IRMAA (based on MAGI from 2 years ago)
+                    let irmaa = 0;
+                    if (age >= 65) {
+                        const lookbackYear = year - 2;
+                        const lookbackMAGI = magiHistory[lookbackYear] || 0;
+                        const irmaaCalc = calculateIRMAA(lookbackMAGI, year, inputs.filingStatus, inputs.numPeople);
+                        irmaa = irmaaCalc.total;
+                        
+                        // Warn if IRMAA triggered
+                        if (irmaa > 0) {
+                            const brackets = getIRMAABrackets(year, inputs.filingStatus);
+                            let bracketName = 'Unknown';
+                            for (let i = 0; i < brackets.length; i++) {
+                                if (lookbackMAGI <= brackets[i].limit) {
+                                    bracketName = `Bracket ${i + 1}`;
+                                    break;
+                                }
+                            }
+                            
+                            irmaaWarnings.push({
+                                year,
+                                age,
+                                lookbackYear,
+                                lookbackMAGI,
+                                irmaa,
+                                bracketName
+                            });
+                        }
+                    }
+                    
+                    // Calculate NIIT (Net Investment Income Tax)
+                    const niitCalc = calculateNIIT(magi, 0, inputs.filingStatus);  // No capital gains during working years
+                    const niitTax = niitCalc.niit;
+                    
+                    // Track NIIT warnings
+                    if (niitTax > 0) {
+                        niitWarnings.push({
+                            year,
+                            age,
+                            magi,
+                            threshold: niitCalc.threshold,
+                            excessMAGI: niitCalc.excessMAGI,
+                            capitalGains: 0,
+                            niitTax,
+                            niitBase: niitCalc.niitBase
+                        });
+                    }
+                    
+                    taxBreakdown.push({
+                        year,
+                        age,
+                        traditionalTax,
+                        rothTax: 0,
+                        taxableTax: 0,
+                        ssTax: 0,
+                        partTimeTax: fullTimeTax,  // Using fullTimeTax but keeping field name for compatibility
+                        irmaa,
+                        niitTax,
+                        totalTax: traditionalTax + fullTimeTax + irmaa + niitTax,
+                        rothConversionAmount,
+                        magi,
+                        standardDeduction: standardDeduction || 0,
+                        bonusDeduction: bonusSeniorDeduction || 0
+                    });
+                    
+                    // Apply returns after all transactions
+                    traditional *= (1 + getReturn(year));
+                    roth *= (1 + getReturn(year));
+                    taxable *= (1 + getReturn(year));
+                    
+                    // Add contributions
+                    traditional += inputs.traditionalContributions;
+                    roth += inputs.rothContributions;
+                    taxable += inputs.taxableContributions;
+                    
+                    portfolio = traditional + roth + taxable;
+            }
+            const portfolioAtPartTime = portfolio;
+            
+            // Phase 2: Part-time
+            const yearsPartTime = inputs.fullRetirementAge - inputs.partTimeStartAge;
+            for (let y = 0; y < yearsPartTime; y++) {
+                const year = currentYear + yearsToPartTime + y;
+                const age = inputs.partTimeStartAge + y;
+                
+                const yearsFromStart = year - currentYear;
+                const livingExpenses = inputs.annualExpensesToday * Math.pow(1 + inputs.inflationRate, yearsFromStart);
+                const healthcareCost = age < 65 ? 
+                    inputs.healthcareCosts * Math.pow(1 + inputs.inflationRate, yearsFromStart) :
+                    inputs.medicareSupplement * Math.pow(1 + inputs.inflationRate, yearsFromStart);
+                
+                // Check for mortgage payment
+                const mortgagePayment = age < inputs.mortgagePayoffAge ? 
+                    inputs.mortgagePayment * Math.pow(1 + inputs.inflationRate, yearsFromStart) : 0;
+                
+                // Check for one-time expenses
+                const oneTimeExpense = inputs.oneTimeExpenses
+                    .filter(e => e.age === age)
+                    .reduce((sum, e) => sum + e.amount, 0);
+                
+                const totalExpenses = livingExpenses + healthcareCost + mortgagePayment + oneTimeExpense;
+                
+                expenseBreakdown.push({
+                    year,
+                    age,
+                    livingExpenses,
+                    healthcareCost,
+                    mortgagePayment,
+                    oneTimeExpense,
+                    totalExpenses
+                });
+                
+                let neededFromPortfolio = Math.max(0, totalExpenses - inputs.partTimeIncome);
+                
+                let taxableWithdrawal = 0;
+                let traditionalWithdrawal = 0;
+                let rothWithdrawal = 0;
+                let rothConversionAmount = 0;
+                
+                // Roth conversions (before age 73, during part-time only if enough room)
+                if (age < 73 && traditional > 0) {
+                    const ordinaryBrackets = getTaxBrackets(year, inputs.filingStatus);
+                    const yearsFromCurrent = year - currentYear;
+                        const currentPrimaryAge = inputs.currentAge + yearsFromCurrent;
+                        const currentSpouseAge = inputs.spouseAge ? inputs.spouseAge + yearsFromCurrent : null;
+                        const standardDeduction = getStandardDeduction(year, inputs.filingStatus, currentPrimaryAge, currentSpouseAge, inputs.numPeople);
+                    const currentOrdinaryIncome = inputs.partTimeIncome;
+                    
+                    const optimalConversion = calculateOptimalRothConversion(
+                        currentOrdinaryIncome,
+                        traditional,
+                        inputs.maxConversionRate,
+                        ordinaryBrackets,
+                        standardDeduction
+                    );
+                    
+                    // Only convert if there's meaningful room (at least $10k)
+                    if (optimalConversion > 10000) {
+                        rothConversionAmount = optimalConversion;
+                        traditional -= rothConversionAmount;
+                        roth += rothConversionAmount;
+                        traditionalWithdrawal += rothConversionAmount;
+                    }
+                }
+                
+                // Withdraw from portfolio
+                if (neededFromPortfolio > 0 && taxable > 0) {
+                    taxableWithdrawal = Math.min(neededFromPortfolio, taxable);
+                    taxable -= taxableWithdrawal;
+                    neededFromPortfolio -= taxableWithdrawal;
+                }
+                
+                if (neededFromPortfolio > 0 && traditional > 0) {
+                    const additionalTraditional = Math.min(neededFromPortfolio, traditional);
+                    traditionalWithdrawal += additionalTraditional;
+                    traditional -= additionalTraditional;
+                    neededFromPortfolio -= additionalTraditional;
+                }
+                
+                if (neededFromPortfolio > 0 && roth > 0) {
+                    rothWithdrawal = Math.min(neededFromPortfolio, roth);
+                    roth -= rothWithdrawal;
+                    neededFromPortfolio -= rothWithdrawal;
+                }
+                
+                // Apply returns
+                if (traditional > 0) traditional *= (1 + getReturn(year));
+                if (roth > 0) roth *= (1 + getReturn(year));
+                if (taxable > 0) taxable *= (1 + getReturn(year));
+                portfolio = traditional + roth + taxable;
+                
+                allData.push({ 
+                    year, 
+                    age, 
+                    portfolio,
+                    traditional,
+                    roth,
+                    taxable,
+                    phase: 'Working Part-Time' 
+                });
+                
+                incomeBreakdown.push({
+                    year,
+                    age,
+                    partTimeIncome: inputs.partTimeIncome,
+                    traditionalWithdrawal,
+                    rothWithdrawal,
+                    taxableWithdrawal,
+                    socialSecurity: 0
+                });
+                
+                // Calculate taxes
+                const ordinaryBrackets = getTaxBrackets(year, inputs.filingStatus);
+                const yearsFromCurrent = year - currentYear;
+                        const currentPrimaryAge = inputs.currentAge + yearsFromCurrent;
+                        const currentSpouseAge = inputs.spouseAge ? inputs.spouseAge + yearsFromCurrent : null;
+                        const standardDeduction = getStandardDeduction(year, inputs.filingStatus, currentPrimaryAge, currentSpouseAge, inputs.numPeople);
+                
+                const partTimeIncomeTaxable = inputs.partTimeIncome;
+                const traditionalTaxable = traditionalWithdrawal;
+                const taxableGains = taxableWithdrawal * (1 - inputs.costBasisPercent);
+                
+                const totalOrdinaryIncome = partTimeIncomeTaxable + traditionalTaxable;
+                    
+                    // Calculate bonus senior deduction (2025-2028, $6K per person 65+, phases out based on MAGI)
+                    const bonusSeniorDeduction = getBonusSeniorDeduction(year, inputs.filingStatus, currentPrimaryAge, currentSpouseAge, totalOrdinaryIncome, inputs.numPeople);
+                    const totalDeductions = standardDeduction + bonusSeniorDeduction;
+                    const ordinaryTax = calculateTax(totalOrdinaryIncome, ordinaryBrackets, totalDeductions);
+                    
+                const capGainsTax = calculateCapitalGainsTax(taxableGains, totalOrdinaryIncome, inputs.filingStatus, year);
+                
+                const partTimeTax = totalOrdinaryIncome > 0 ? ordinaryTax * (partTimeIncomeTaxable / totalOrdinaryIncome) : 0;
+                const traditionalTax = totalOrdinaryIncome > 0 ? ordinaryTax * (traditionalTaxable / totalOrdinaryIncome) : 0;
+                
+                // Track MAGI for IRMAA
+                const magi = totalOrdinaryIncome + taxableGains;
+                magiHistory[year] = magi;
+                
+                // Calculate IRMAA (based on MAGI from 2 years ago)
+                let irmaa = 0;
+                if (age >= 65) {
+                    const lookbackYear = year - 2;
+                    const lookbackMAGI = magiHistory[lookbackYear] || 0;
+                    const irmaaCalc = calculateIRMAA(lookbackMAGI, year, inputs.filingStatus, inputs.numPeople);
+                    irmaa = irmaaCalc.total;
+                    
+                    // Warn if IRMAA triggered
+                    if (irmaa > 0) {
+                        const baseMedicare = 174.70 * 12 * inputs.numPeople; // 2025 base Part B
+                        const brackets = getIRMAABrackets(year, inputs.filingStatus);
+                        let bracketName = 'Unknown';
+                        for (let i = 0; i < brackets.length; i++) {
+                            if (lookbackMAGI <= brackets[i].limit) {
+                                bracketName = `Bracket ${i + 1}`;
+                                break;
+                            }
+                        }
+                        
+                        irmaaWarnings.push({
+                            year,
+                            age,
+                            lookbackYear,
+                            lookbackMAGI,
+                            irmaa,
+                            bracketName
+                        });
+                    }
+                }
+                
+                
+                // Calculate NIIT (Net Investment Income Tax)
+                const niitCalc = calculateNIIT(magi, taxableGains, inputs.filingStatus);
+                const niitTax = niitCalc.niit;
+                
+                // Track NIIT warnings
+                if (niitTax > 0) {
+                    niitWarnings.push({
+                        year,
+                        age,
+                        magi,
+                        threshold: niitCalc.threshold,
+                        excessMAGI: niitCalc.excessMAGI,
+                        capitalGains: taxableGains,
+                        niitTax,
+                        niitBase: niitCalc.niitBase
+                    });
+                }
+
+                taxBreakdown.push({
+                    year,
+                    age,
+                    traditionalTax,
+                    rothTax: 0,
+                    taxableTax: capGainsTax,
+                    ssTax: 0,
+                    partTimeTax,
+                    irmaa,
+                    niitTax,
+                    totalTax: traditionalTax + capGainsTax + partTimeTax + irmaa + niitTax,
+                    rothConversionAmount,
+                    magi
+                });
+            }
+            const portfolioAtFullRetirement = portfolio;
+            
+            // Phase 3: Retirement
+            const yearsUntilFull = inputs.fullRetirementAge - inputs.currentAge;
+            const yearsRet = inputs.lifeExpectancy - inputs.fullRetirementAge;
+            let portfolioDepletedAge = null;
+            
+            for (let y = 0; y <= yearsRet; y++) {
+                const age = inputs.fullRetirementAge + y;
+                const year = currentYear + yearsUntilFull + y;
+                
+                const yearsFromStart = year - currentYear;
+                const livingExpenses = inputs.annualExpensesToday * Math.pow(1 + inputs.inflationRate, yearsFromStart);
+                const healthcareCost = age < 65 ? 
+                    inputs.healthcareCosts * Math.pow(1 + inputs.inflationRate, yearsFromStart) :
+                    inputs.medicareSupplement * Math.pow(1 + inputs.inflationRate, yearsFromStart);
+                
+                // Check for mortgage payment
+                const mortgagePayment = age < inputs.mortgagePayoffAge ? 
+                    inputs.mortgagePayment * Math.pow(1 + inputs.inflationRate, yearsFromStart) : 0;
+                
+                const oneTimeExpense = inputs.oneTimeExpenses
+                    .filter(e => e.age === age)
+                    .reduce((sum, e) => sum + e.amount, 0);
+                
+                const totalExpenses = livingExpenses + healthcareCost + mortgagePayment + oneTimeExpense;
+                
+                const ss = age >= inputs.ssStartAge ? inputs.socialSecurity * Math.pow(1 + inputs.inflationRate, yearsFromStart) : 0;
+                let neededFromPortfolio = Math.max(0, totalExpenses - ss);
+                
+                expenseBreakdown.push({
+                    year,
+                    age,
+                    livingExpenses,
+                    healthcareCost,
+                    mortgagePayment,
+                    oneTimeExpense,
+                    totalExpenses
+                });
+                
+                let taxableWithdrawal = 0;
+                let traditionalWithdrawal = 0;
+                let rothWithdrawal = 0;
+                
+                // RMD
+                let rmdAmount = 0;
+                if (age >= 73 && traditional > 0) {
+                    const rmdDivisor = 27.4 - Math.max(0, age - 73);
+                    rmdAmount = traditional / rmdDivisor;
+                    traditionalWithdrawal = rmdAmount;
+                    traditional -= rmdAmount;
+                    neededFromPortfolio -= rmdAmount;
+                }
+                
+                // Roth conversions (before age 73)
+                if (age < 73 && traditional > 10000 && roth < traditional * 1.5) {
+                    const conversionAmount = Math.min(10000, traditional);
+                    traditional -= conversionAmount;
+                    roth += conversionAmount;
+                    traditionalWithdrawal += conversionAmount;
+                    neededFromPortfolio -= conversionAmount;
+                }
+                
+                // Withdraw remaining
+                if (neededFromPortfolio > 0) {
+                    const taxableTarget = neededFromPortfolio * 0.7;
+                    const traditionalTarget = neededFromPortfolio * 0.3;
+                    
+                    if (taxable > 0) {
+                        const taxableAmount = Math.min(taxableTarget, taxable);
+                        taxableWithdrawal = taxableAmount;
+                        taxable -= taxableAmount;
+                        neededFromPortfolio -= taxableAmount;
+                    }
+                    
+                    if (neededFromPortfolio > 0 && traditional > 0) {
+                        const traditionalAmount = Math.min(neededFromPortfolio, traditional);
+                        traditionalWithdrawal += traditionalAmount;
+                        traditional -= traditionalAmount;
+                        neededFromPortfolio -= traditionalAmount;
+                    }
+                    
+                    if (neededFromPortfolio > 0 && roth > 0) {
+                        rothWithdrawal = Math.min(neededFromPortfolio, roth);
+                        roth -= rothWithdrawal;
+                        neededFromPortfolio -= rothWithdrawal;
+                    }
+                }
+                
+                portfolio = traditional + roth + taxable;
+                
+                allData.push({ 
+                    year, 
+                    age, 
+                    portfolio,
+                    traditional,
+                    roth,
+                    taxable,
+                    phase: 'Fully Retired' 
+                });
+                
+                incomeBreakdown.push({
+                    year,
+                    age,
+                    partTimeIncome: 0,
+                    traditionalWithdrawal,
+                    rothWithdrawal,
+                    taxableWithdrawal,
+                    socialSecurity: ss
+                });
+                
+                // Calculate taxes
+                const ordinaryBrackets = getTaxBrackets(year, inputs.filingStatus);
+                const yearsFromCurrent = year - currentYear;
+                        const currentPrimaryAge = inputs.currentAge + yearsFromCurrent;
+                        const currentSpouseAge = inputs.spouseAge ? inputs.spouseAge + yearsFromCurrent : null;
+                        const standardDeduction = getStandardDeduction(year, inputs.filingStatus, currentPrimaryAge, currentSpouseAge, inputs.numPeople);
+                
+                const traditionalTaxable = traditionalWithdrawal;
+                const ssTaxable = calculateSocialSecurityTaxable(ss, traditionalTaxable, inputs.filingStatus);
+                
+                const totalOrdinaryIncome = traditionalTaxable + ssTaxable;
+                    
+                    // Calculate bonus senior deduction (2025-2028, $6K per person 65+, phases out based on MAGI)
+                    const bonusSeniorDeduction = getBonusSeniorDeduction(year, inputs.filingStatus, currentPrimaryAge, currentSpouseAge, totalOrdinaryIncome, inputs.numPeople);
+                    const totalDeductions = standardDeduction + bonusSeniorDeduction;
+                    const ordinaryTax = calculateTax(totalOrdinaryIncome, ordinaryBrackets, totalDeductions);
+                    
+                
+                const taxableGains = taxableWithdrawal * (1 - inputs.costBasisPercent);
+                const capGainsTax = calculateCapitalGainsTax(taxableGains, totalOrdinaryIncome, inputs.filingStatus, year);
+                
+                const traditionalTax = totalOrdinaryIncome > 0 ? ordinaryTax * (traditionalTaxable / totalOrdinaryIncome) : 0;
+                const ssTax = totalOrdinaryIncome > 0 ? ordinaryTax * (ssTaxable / totalOrdinaryIncome) : 0;
+                
+                // Track MAGI
+                const magi = totalOrdinaryIncome + taxableGains;
+                magiHistory[year] = magi;
+                
+                // Calculate IRMAA
+                let irmaa = 0;
+                if (age >= 65) {
+                    const lookbackYear = year - 2;
+                    const lookbackMAGI = magiHistory[lookbackYear] || 0;
+                    const irmaaCalc = calculateIRMAA(lookbackMAGI, year, inputs.filingStatus, inputs.numPeople);
+                    irmaa = irmaaCalc.total;
+                    
+                    if (irmaa > 0 && !irmaaWarnings.find(w => w.year === year)) {
+                        const brackets = getIRMAABrackets(year, inputs.filingStatus);
+                        let bracketName = 'Unknown';
+                        for (let i = 0; i < brackets.length; i++) {
+                            if (lookbackMAGI <= brackets[i].limit) {
+                                bracketName = `Bracket ${i + 1}`;
+                                break;
+                            }
+                        }
+                        
+                        irmaaWarnings.push({
+                            year,
+                            age,
+                            lookbackYear,
+                            lookbackMAGI,
+                            irmaa,
+                            bracketName
+                        });
+                    }
+                }
+                
+                
+                // Calculate NIIT
+                const niitCalc = calculateNIIT(magi, taxableGains, inputs.filingStatus);
+                const niitTax = niitCalc.niit;
+                
+                if (niitTax > 0 && !niitWarnings.find(w => w.year === year)) {
+                    niitWarnings.push({
+                        year,
+                        age,
+                        magi,
+                        threshold: niitCalc.threshold,
+                        excessMAGI: niitCalc.excessMAGI,
+                        capitalGains: taxableGains,
+                        niitTax,
+                        niitBase: niitCalc.niitBase
+                    });
+                }
+
+                taxBreakdown.push({
+                    year,
+                    age,
+                    traditionalTax,
+                    rothTax: 0,
+                    taxableTax: capGainsTax,
+                    ssTax,
+                    partTimeTax: 0,
+                    irmaa,
+                    niitTax,
+                    totalTax: traditionalTax + capGainsTax + ssTax + irmaa + niitTax,
+                    rothConversionAmount: 0,
+                    magi
+                });
+                
+                if (portfolio <= 0 && !portfolioDepletedAge) portfolioDepletedAge = age;
+                
+                if (traditional > 0) traditional *= (1 + getReturn(year));
+                if (roth > 0) roth *= (1 + getReturn(year));
+                if (taxable > 0) taxable *= (1 + getReturn(year));
+                portfolio = traditional + roth + taxable;
+            }
+            
+            return {
+                portfolioAtPartTime, 
+                portfolioAtFullRetirement,
+                finalPortfolio: portfolio,
+                success: portfolio > 0 && !portfolioDepletedAge,
+                portfolioDepletedAge,
+                allData, 
+                incomeBreakdown,
+                taxBreakdown,
+                expenseBreakdown,
+                irmaaWarnings,
+                niitWarnings,
+                hasPartTimePhase: yearsPartTime > 0 && inputs.partTimeIncome > 0
+            };
+        }
+        
+        function calculate() {
+            if (!plotlyLoaded) { alert('Please wait...'); return; }
+            const inputs = getInputs();
+            if (inputs.fullRetirementAge < inputs.partTimeStartAge || inputs.lifeExpectancy <= inputs.fullRetirementAge) {
+                alert('Check age inputs'); return;
+            }
+            lastInputs = inputs;
+            const results = projectRetirement(inputs, false);
+            lastDeterministicResults = results;
+            displayResults(inputs, results);
+            document.getElementById('exportButton').style.display = 'inline-block';
+        }
+        
+        async function calculateFullAnalysis() {
+            if (!plotlyLoaded) { alert('Please wait...'); return; }
+            
+            // Disable buttons during calculation
+            document.getElementById('fullAnalysisButton').disabled = true;
+            document.getElementById('quickButton').disabled = true;
+            document.getElementById('fullAnalysisButton').textContent = ' Calculating...';
+            
+            // Step 1: Run deterministic calculation
+            const inputs = getInputs();
+            if (inputs.fullRetirementAge < inputs.partTimeStartAge || inputs.lifeExpectancy <= inputs.fullRetirementAge) {
+                alert('Check age inputs');
+                document.getElementById('fullAnalysisButton').disabled = false;
+                document.getElementById('quickButton').disabled = false;
+                document.getElementById('fullAnalysisButton').textContent = ' Calculate Full Analysis (with Monte Carlo)';
+                return;
+            }
+            
+            lastInputs = inputs;
+            const results = projectRetirement(inputs, false);
+            lastDeterministicResults = results;
+            displayResults(inputs, results);
+            document.getElementById('exportButton').style.display = 'inline-block';
+            
+            // Update button text to show Monte Carlo is starting
+            document.getElementById('fullAnalysisButton').textContent = ' Running Monte Carlo...';
+            
+            // Step 2: Automatically run Monte Carlo after a brief delay for UI update
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await runMonteCarlo();
+            
+            // Re-enable buttons
+            document.getElementById('fullAnalysisButton').disabled = false;
+            document.getElementById('quickButton').disabled = false;
+            document.getElementById('fullAnalysisButton').textContent = ' Calculate Full Analysis (with Monte Carlo)';
+        }
+        
+        async function runMonteCarlo() {
+            if (!lastInputs) { alert('Calculate first'); return; }
+            const inputs = lastInputs;
+            const numSims = parseInt(document.getElementById('mcSimCount').value);
+            
+            document.getElementById('mcPanel').style.display = 'block';
+            document.getElementById('mcProgress').style.display = 'block';
+            document.getElementById('mcResults').style.display = 'none';
+            
+            const finalBalances = [];
+            const portfoliosByYear = {};
+            let successes = 0;
+            
+            const batchSize = 50;
+            const numBatches = Math.ceil(numSims / batchSize);
+            for (let batch = 0; batch < numBatches; batch++) {
+                await new Promise(r => setTimeout(r, 10));
+                const simsThisBatch = Math.min(batchSize, numSims - (batch * batchSize));
+                for (let i = 0; i < simsThisBatch; i++) {
+                    const sim = projectRetirement(inputs, true);
+                    finalBalances.push(sim.finalPortfolio);
+                    if (sim.success) successes++;
+                    sim.allData.forEach(d => {
+                        if (!portfoliosByYear[d.year]) portfoliosByYear[d.year] = { year: d.year, age: d.age, portfolios: [] };
+                        portfoliosByYear[d.year].portfolios.push(d.portfolio);
+                    });
+                }
+                document.getElementById('mcProgressBar').style.width = Math.round(((batch + 1) / numBatches) * 100) + '%';
+                document.getElementById('mcProgressBar').textContent = Math.round(((batch + 1) / numBatches) * 100) + '%';
+            }
+            
+            const percentiles = { p10: [], p25: [], p50: [], p75: [], p90: [] };
+            Object.keys(portfoliosByYear).sort((a,b) => parseInt(a) - parseInt(b)).forEach(year => {
+                const sorted = portfoliosByYear[year].portfolios.sort((a,b) => a - b);
+                percentiles.p10.push({ year: portfoliosByYear[year].year, age: portfoliosByYear[year].age, value: sorted[Math.floor(sorted.length * 0.10)] });
+                percentiles.p25.push({ year: portfoliosByYear[year].year, age: portfoliosByYear[year].age, value: sorted[Math.floor(sorted.length * 0.25)] });
+                percentiles.p50.push({ year: portfoliosByYear[year].year, age: portfoliosByYear[year].age, value: sorted[Math.floor(sorted.length * 0.50)] });
+                percentiles.p75.push({ year: portfoliosByYear[year].year, age: portfoliosByYear[year].age, value: sorted[Math.floor(sorted.length * 0.75)] });
+                percentiles.p90.push({ year: portfoliosByYear[year].year, age: portfoliosByYear[year].age, value: sorted[Math.floor(sorted.length * 0.90)] });
+            });
+            
+            finalBalances.sort((a,b) => a - b);
+            displayMCResults(inputs, {
+                successRate: successes / numSims,
+                p10: finalBalances[Math.floor(numSims * 0.10)],
+                p25: finalBalances[Math.floor(numSims * 0.25)],
+                p50: finalBalances[Math.floor(numSims * 0.50)],
+                p75: finalBalances[Math.floor(numSims * 0.75)],
+                p90: finalBalances[Math.floor(numSims * 0.90)],
+                finalBalances, percentiles
+            });
+        }
+        
+        function displayResults(inputs, results) {
+            document.getElementById('resultsPanel').style.display = 'block';
+            
+            const totalTaxes = results.taxBreakdown.reduce((sum, t) => sum + t.totalTax, 0);
+            const totalIRMAA = results.taxBreakdown.reduce((sum, t) => sum + t.irmaa, 0);
+            const totalNIIT = results.taxBreakdown.reduce((sum, t) => sum + (t.niitTax || 0), 0);
+            
+            // Generate TL;DR Summary Section
+            const yearsToRetirement = inputs.fullRetirementAge - inputs.currentAge;
+            const portfolioAtRetirement = results.portfolioAtFullRetirement;
+            const portfolioAtLifeExpectancy = results.finalPortfolio;
+            
+            // Determine card styles based on values
+            const retirementCardStyle = portfolioAtRetirement > inputs.currentPortfolio * 2 ? 'excellent' : 
+                                       portfolioAtRetirement > inputs.currentPortfolio * 1.5 ? 'good' : 
+                                       portfolioAtRetirement > inputs.currentPortfolio ? '' : 'warning';
+            
+            const finalCardStyle = results.success && portfolioAtLifeExpectancy > 0 ? 'excellent' :
+                                  results.success ? 'good' : 'danger';
+            
+            const taxCardStyle = totalTaxes < portfolioAtRetirement * 0.15 ? 'good' :
+                                totalTaxes < portfolioAtRetirement * 0.25 ? '' : 'warning';
+            
+            // Build warnings list
+            let warningsList = [];
+            if (!results.success) {
+                warningsList.push(' Portfolio may deplete' + (results.portfolioDepletedAge ? ' at age ' + results.portfolioDepletedAge : ''));
+            }
+            if (results.irmaaWarnings.length > 0) {
+                warningsList.push(' IRMAA surcharges in ' + results.irmaaWarnings.length + ' year(s)');
+            }
+            if (portfolioAtLifeExpectancy < portfolioAtRetirement * 0.3) {
+                warningsList.push(' Significant portfolio drawdown over retirement');
+            }
+            
+            const warningsHTML = warningsList.length > 0 ? 
+                `<div class="tldr-warnings">
+                    <h4> Key Considerations</h4>
+                    <ul>${warningsList.map(w => '<li>' + w + '</li>').join('')}</ul>
+                </div>` : '';
+            
+            document.getElementById('tldrSection').innerHTML = `
+                <div class="tldr-title"> Executive Summary</div>
+                <div class="tldr-grid">
+                    <div class="tldr-card ${retirementCardStyle}">
+                        <div class="tldr-icon">${retirementCardStyle === 'excellent' ? '' : retirementCardStyle === 'good' ? '' : retirementCardStyle === 'warning' ? '' : ''}</div>
+                        <div class="tldr-label">Portfolio at Retirement</div>
+                        <div class="tldr-value">$${(portfolioAtRetirement / 1e6).toFixed(2)}M</div>
+                        <div class="tldr-subtitle">At age ${inputs.fullRetirementAge} (${yearsToRetirement} years from now)</div>
+                    </div>
+                    
+                    <div class="tldr-card ${finalCardStyle}">
+                        <div class="tldr-icon">${finalCardStyle === 'excellent' ? '' : finalCardStyle === 'good' ? '' : finalCardStyle === 'danger' ? '' : ''}</div>
+                        <div class="tldr-label">Portfolio at Life Expectancy</div>
+                        <div class="tldr-value">$${(Math.max(0, portfolioAtLifeExpectancy) / 1e6).toFixed(2)}M</div>
+                        <div class="tldr-subtitle">At age ${inputs.lifeExpectancy} ${results.success ? '(plan succeeds)' : '( may run out)'}</div>
+                    </div>
+                    
+                    <div class="tldr-card">
+                        <div class="tldr-icon"></div>
+                        <div class="tldr-label">Years Until Retirement</div>
+                        <div class="tldr-value">${yearsToRetirement}</div>
+                        <div class="tldr-subtitle">${results.hasPartTimePhase ? 'Part-time starts in ' + (inputs.partTimeStartAge - inputs.currentAge) + ' years' : 'Full retirement at age ' + inputs.fullRetirementAge}</div>
+                    </div>
+                    
+                    <div class="tldr-card ${taxCardStyle}">
+                        <div class="tldr-icon"></div>
+                        <div class="tldr-label">Total Lifetime Taxes</div>
+                        <div class="tldr-value">$${(totalTaxes / 1000).toFixed(0)}k</div>
+                        <div class="tldr-subtitle">Including $${(totalIRMAA / 1000).toFixed(0)}k IRMAA</div>
+                    </div>
+                    
+                    <div class="tldr-card" id="mcSuccessSummary" style="display: none;">
+                        <div class="tldr-icon"></div>
+                        <div class="tldr-label">Monte Carlo Success Rate</div>
+                        <div class="tldr-value" id="tldrMCRate">--</div>
+                        <div class="tldr-subtitle">Run Monte Carlo for probability analysis</div>
+                    </div>
+                </div>
+                ${warningsHTML}
+            `;
+            
+            document.getElementById('resultsCards').innerHTML = 
+                (results.hasPartTimePhase ? 
+                `<div class="result-card"><div class="result-label">Years Full-Time</div><div class="result-value">${inputs.partTimeStartAge - inputs.currentAge}</div></div>
+                <div class="result-card"><div class="result-label">Years Part-Time</div><div class="result-value">${inputs.fullRetirementAge - inputs.partTimeStartAge}</div></div>` : 
+                `<div class="result-card"><div class="result-label">Years to Retirement</div><div class="result-value">${inputs.fullRetirementAge - inputs.currentAge}</div></div>`) +
+                `<div class="result-card ${results.success ? 'success' : 'warning'}">
+                    <div class="result-label">Portfolio at Retirement</div>
+                    <div class="result-value">$${(results.portfolioAtFullRetirement / 1e6).toFixed(2)}M</div>
+                </div>
+                <div class="result-card ${results.success ? 'success' : 'warning'}">
+                    <div class="result-label">Final Balance</div>
+                    <div class="result-value">$${(Math.max(0, results.finalPortfolio) / 1e6).toFixed(2)}M</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-label">Total Taxes Paid</div>
+                    <div class="result-value">$${(totalTaxes / 1000).toFixed(0)}k</div>
+                    <div class="result-subtitle">Inc. IRMAA: $${(totalIRMAA / 1000).toFixed(0)}k</div>
+                </div>`;
+            
+            document.getElementById('phaseNote').innerHTML = results.hasPartTimePhase ?
+                `<div class="highlight-box"><h4>Three-Phase Plan</h4>
+                <ul><li>Ages ${inputs.currentAge}-${inputs.partTimeStartAge}: Full-time work</li>
+                <li>Ages ${inputs.partTimeStartAge}-${inputs.fullRetirementAge}: Part-time ($${inputs.partTimeIncome.toLocaleString()}/yr)</li>
+                <li>Ages ${inputs.fullRetirementAge}-${inputs.lifeExpectancy}: Fully retired</li></ul></div>` : '';
+            
+            // IRMAA Warnings
+            if (results.irmaaWarnings.length > 0) {
+                const warningsHTML = results.irmaaWarnings.map(w => 
+                    `<li>Age ${w.age} (${w.year}): MAGI of $${w.lookbackMAGI.toLocaleString()} in ${w.lookbackYear} triggers <strong>$${w.irmaa.toLocaleString()}/yr</strong> IRMAA surcharge (${w.bracketName})</li>`
+                ).join('');
+                
+                document.getElementById('irmaaWarnings').innerHTML = 
+                    `<div class="irmaa-warning">
+                        <h4> Medicare IRMAA Surcharges Triggered (${results.irmaaWarnings.length} years)</h4>
+                        <p>High income in certain years will result in Medicare premium surcharges 2 years later:</p>
+                        <ul style="margin-left: 20px; font-size: 14px; margin-top: 10px;">${warningsHTML}</ul>
+                        <p style="margin-top: 10px; font-size: 13px;"><strong>Strategy:</strong> Consider limiting Roth conversions in years that could trigger IRMAA, especially ages 63-70 (affects Medicare at 65-72).</p>
+                    </div>`;
+            } else {
+                document.getElementById('irmaaWarnings').innerHTML = 
+                    `<div class="info-box">
+                        <h4> No IRMAA Surcharges</h4>
+                        <p>Your income stays below IRMAA thresholds throughout retirement. Good tax planning!</p>
+                    </div>`;
+            }
+            
+            // NIIT Warnings
+            if (results.niitWarnings && results.niitWarnings.length > 0) {
+                const niitHTML = results.niitWarnings.map(w => {
+                    const threshold = w.threshold.toLocaleString();
+                    const magi = w.magi.toLocaleString('en-US', {maximumFractionDigits: 0});
+                    const excess = w.excessMAGI.toLocaleString('en-US', {maximumFractionDigits: 0});
+                    const niit = w.niitTax.toLocaleString('en-US', {maximumFractionDigits: 0});
+                    const capitalGains = w.capitalGains.toLocaleString('en-US', {maximumFractionDigits: 0});
+                    const niitBase = w.niitBase.toLocaleString('en-US', {maximumFractionDigits: 0});
+                    
+                    return `<li>Age ${w.age} (${w.year}): MAGI of $${magi} exceeds $${threshold} threshold by $${excess}  <strong>$${niit} NIIT</strong> (3.8%  $${niitBase} investment income)</li>`;
+                }).join('');
+                
+                const niitWarningDiv = document.createElement('div');
+                niitWarningDiv.innerHTML = `
+                    <div class="irmaa-warning" style="background: #fff3e0; border-left: 4px solid #f39c12; margin-top: 20px;">
+                        <h4> Net Investment Income Tax (NIIT) Applied (${results.niitWarnings.length} years)</h4>
+                        <p>The 3.8% NIIT surtax applies when your Modified Adjusted Gross Income exceeds the threshold:</p>
+                        <ul style="margin-left: 20px; font-size: 14px; margin-top: 10px;">${niitHTML}</ul>
+                        <p style="margin-top: 10px; font-size: 13px; color: #e67e22;"><strong> Strategy:</strong> Consider spreading large taxable account sales across multiple years or reducing Roth conversions in high capital gains years to minimize NIIT.</p>
+                    </div>
+                `;
+                document.getElementById('irmaaWarnings').appendChild(niitWarningDiv);
+            }
+            
+            document.getElementById('messageBox').innerHTML = results.success ?
+                `<div class="info-box"><h4>Plan looks solid with average returns</h4>
+                <p>Run Monte Carlo to see range of outcomes and downside risk.</p></div>` :
+                `<div class="warning-box"><h4>Warning: Plan needs adjustment</h4>
+                <p>Portfolio ${results.portfolioDepletedAge ? 'depletes at age ' + results.portfolioDepletedAge : 'insufficient'}</p></div>`;
+            
+            // Portfolio chart
+            Plotly.newPlot('portfolioChart', [
+                {
+                    x: results.allData.map(d => d.year),
+                    y: results.allData.map(d => d.traditional),
+                    name: 'Traditional IRA/401k',
+                    stackgroup: 'portfolio',
+                    fillcolor: '#e74c3c',
+                    line: {width: 0},
+                    hovertemplate: '<b>Traditional</b>: $%{y:,.0f}<extra></extra>'
+                },
+                {
+                    x: results.allData.map(d => d.year),
+                    y: results.allData.map(d => d.roth),
+                    name: 'Roth IRA/401k',
+                    stackgroup: 'portfolio',
+                    fillcolor: '#3498db',
+                    line: {width: 0},
+                    hovertemplate: '<b>Roth</b>: $%{y:,.0f}<extra></extra>'
+                },
+                {
+                    x: results.allData.map(d => d.year),
+                    y: results.allData.map(d => d.taxable),
+                    name: 'Taxable Brokerage',
+                    stackgroup: 'portfolio',
+                    fillcolor: '#2ecc71',
+                    line: {width: 0},
+                    hovertemplate: '<b>Taxable</b>: $%{y:,.0f}<extra></extra>'
+                }
+            ], { 
+                title: 'Portfolio Value by Account Type', 
+                xaxis: { title: 'Year' }, 
+                yaxis: { title: 'Value ($)', tickformat: '$,.0f' },
+                hovermode: 'x unified'
+            });
+            
+            // Expenses chart
+            Plotly.newPlot('expensesChart', [
+                {
+                    x: results.expenseBreakdown.map(d => d.year),
+                    y: results.expenseBreakdown.map(d => d.livingExpenses),
+                    name: 'Living Expenses',
+                    type: 'bar',
+                    marker: { color: '#3498db' }
+                },
+                {
+                    x: results.expenseBreakdown.map(d => d.year),
+                    y: results.expenseBreakdown.map(d => d.healthcareCost),
+                    name: 'Healthcare',
+                    type: 'bar',
+                    marker: { color: '#e74c3c' }
+                },
+                {
+                    x: results.expenseBreakdown.map(d => d.year),
+                    y: results.expenseBreakdown.map(d => d.mortgagePayment),
+                    name: 'Mortgage/Loan',
+                    type: 'bar',
+                    marker: { color: '#9b59b6' }
+                },
+                {
+                    x: results.expenseBreakdown.map(d => d.year),
+                    y: results.expenseBreakdown.map(d => d.oneTimeExpense),
+                    name: 'One-Time Expenses',
+                    type: 'bar',
+                    marker: { color: '#f39c12' }
+                }
+            ], {
+                title: 'Annual Expenses Breakdown (Inflation-Adjusted)',
+                xaxis: { title: 'Year' },
+                yaxis: { title: 'Expenses ($)', tickformat: '$,.0f' },
+                barmode: 'stack',
+                hovermode: 'x unified'
+            });
+            
+            // Income sources
+            if (results.incomeBreakdown.length) {
+                Plotly.newPlot('incomeSourcesChart', [
+                    { 
+                        x: results.incomeBreakdown.map(d => d.year), 
+                        y: results.incomeBreakdown.map(d => d.partTimeIncome), 
+                        name: 'Employment Income', 
+                        stackgroup: 'income', 
+                        fillcolor: '#9b59b6',
+                        hovertemplate: '<b>Part-Time</b>: $%{y:,.0f}<extra></extra>'
+                    },
+                    { 
+                        x: results.incomeBreakdown.map(d => d.year), 
+                        y: results.incomeBreakdown.map(d => d.taxableWithdrawal), 
+                        name: 'Taxable Withdrawal', 
+                        stackgroup: 'income', 
+                        fillcolor: '#2ecc71',
+                        hovertemplate: '<b>Taxable</b>: $%{y:,.0f}<extra></extra>'
+                    },
+                    { 
+                        x: results.incomeBreakdown.map(d => d.year), 
+                        y: results.incomeBreakdown.map(d => d.traditionalWithdrawal), 
+                        name: 'Traditional Withdrawal', 
+                        stackgroup: 'income', 
+                        fillcolor: '#e74c3c',
+                        hovertemplate: '<b>Traditional</b>: $%{y:,.0f}<extra></extra>'
+                    },
+                    { 
+                        x: results.incomeBreakdown.map(d => d.year), 
+                        y: results.incomeBreakdown.map(d => d.rothWithdrawal), 
+                        name: 'Roth Withdrawal', 
+                        stackgroup: 'income', 
+                        fillcolor: '#3498db',
+                        hovertemplate: '<b>Roth</b>: $%{y:,.0f}<extra></extra>'
+                    },
+                    { 
+                        x: results.incomeBreakdown.map(d => d.year), 
+                        y: results.incomeBreakdown.map(d => d.socialSecurity), 
+                        name: 'Social Security', 
+                        stackgroup: 'income', 
+                        fillcolor: '#f39c12',
+                        hovertemplate: '<b>Social Security</b>: $%{y:,.0f}<extra></extra>'
+                    }
+                ], { 
+                    title: 'Income & Roth Conversions (Pre-Retirement + Retirement)', 
+                    xaxis: { title: 'Year' }, 
+                    yaxis: { title: 'Annual Income ($)', tickformat: '$,.0f' }, 
+                    hovermode: 'x unified'
+                });
+            }
+            
+            // Tax breakdown
+            if (results.taxBreakdown.length) {
+                Plotly.newPlot('taxChart', [
+                    {
+                        x: results.taxBreakdown.map(d => d.year),
+                        y: results.taxBreakdown.map(d => d.partTimeTax),
+                        name: 'Part-Time Income Tax',
+                        type: 'bar',
+                        marker: { color: '#9b59b6' }
+                    },
+                    {
+                        x: results.taxBreakdown.map(d => d.year),
+                        y: results.taxBreakdown.map(d => d.taxableTax),
+                        name: 'Taxable Acct (Cap Gains)',
+                        type: 'bar',
+                        marker: { color: '#2ecc71' }
+                    },
+                    {
+                        x: results.taxBreakdown.map(d => d.year),
+                        y: results.taxBreakdown.map(d => d.traditionalTax),
+                        name: 'Traditional (Ord Income)',
+                        type: 'bar',
+                        marker: { color: '#e74c3c' }
+                    },
+                    {
+                        x: results.taxBreakdown.map(d => d.year),
+                        y: results.taxBreakdown.map(d => d.ssTax),
+                        name: 'Social Security Tax',
+                        type: 'bar',
+                        marker: { color: '#f39c12' }
+                    },
+                    {
+                        x: results.taxBreakdown.map(d => d.year),
+                        y: results.taxBreakdown.map(d => d.irmaa),
+                        name: 'Medicare IRMAA',
+                        type: 'bar',
+                        marker: { color: '#e67e22' }
+                    },
+                    {
+                        x: results.taxBreakdown.map(d => d.year),
+                        y: results.taxBreakdown.map(d => d.niitTax || 0),
+                        name: 'NIIT (3.8% Surtax)',
+                        type: 'bar',
+                        marker: { color: '#c0392b' }
+                    }
+                ], {
+                    title: `Taxes Paid by Source (Total: $${totalTaxes.toLocaleString('en-US', {maximumFractionDigits: 0})})`,
+                    xaxis: { title: 'Year' },
+                    yaxis: { title: 'Taxes Paid ($)', tickformat: '$,.0f' },
+                    barmode: 'stack',
+                    hovermode: 'x unified'
+                });
+                
+                const avgAnnualTax = totalTaxes / results.taxBreakdown.length;
+                
+                document.getElementById('taxStrategyNote').innerHTML = `
+                    <div class="highlight-box">
+                        <h4>Tax Minimization Strategy</h4>
+                        <p><strong>Total Lifetime Taxes:</strong> $${totalTaxes.toLocaleString('en-US', {maximumFractionDigits: 0})} (includes $${totalIRMAA.toLocaleString()} IRMAA, $${totalNIIT.toLocaleString()} NIIT)</p>
+                        <p><strong>Average Annual Tax:</strong> $${avgAnnualTax.toLocaleString('en-US', {maximumFractionDigits: 0})}</p>
+                        <p style="margin-top: 10px;"><strong> Enhanced Features Applied:</strong></p>
+                        <ul style="margin-left: 20px; font-size: 14px;">
+                            <li><strong>Standard Deduction:</strong> $${getStandardDeduction(new Date().getFullYear(), inputs.filingStatus, inputs.currentAge, inputs.spouseAge, inputs.numPeople).toLocaleString()} (${inputs.filingStatus}) reduces taxable income each year</li>
+                            <li><strong>Ã°Å¸â€™Â° NEW: Bonus Senior Deduction (2025-2028):</strong> Additional $6,000 per person age 65+ (up to $12,000 for couples). Phases out if MAGI > $150k (married) / $75k (single). This is ON TOP of the standard deduction!</li>
+                            <li><strong>Healthcare Costs:</strong> $${inputs.healthcareCosts.toLocaleString()}/yr pre-65 (household), $${inputs.medicareSupplement.toLocaleString()}/yr per person post-65 (Ã— ${inputs.numPeople} = $${(inputs.medicareSupplement * inputs.numPeople).toLocaleString()}/yr total)</li>
+                            <li><strong>Medicare IRMAA:</strong> ${results.irmaaWarnings.length > 0 ? results.irmaaWarnings.length + ' years with surcharges' : 'No surcharges - staying below thresholds!'}</li>
+                            <li><strong>NIIT (3.8% Surtax):</strong> ${results.niitWarnings && results.niitWarnings.length > 0 ? results.niitWarnings.length + ' years when MAGI exceeds threshold' : 'MAGI stays below threshold - no NIIT!'}</li>
+                            <li><strong>One-Time Expenses:</strong> ${inputs.oneTimeExpenses.length} event(s) totaling $${inputs.oneTimeExpenses.reduce((sum, e) => sum + e.amount, 0).toLocaleString()}</li>
+                            <li><strong>Roth Conversions:</strong> Fill up to ${(inputs.maxConversionRate * 100).toFixed(0)}% bracket annually before age 73</li>
+                            <li><strong>Capital Gains Advantage:</strong> Taxable withdrawals at 0-20% (vs 10-37% ordinary)</li>
+                        </ul>
+                        <p style="margin-top: 10px; font-size: 13px; color: #7f8c8d;">
+                            <em>All tax brackets and thresholds automatically adjust for inflation at 2.5%/year from 2025 base.</em>
+                        </p>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('resultsPanel').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function displayMCResults(inputs, mc) {
+            document.getElementById('mcProgress').style.display = 'none';
+            document.getElementById('mcResults').style.display = 'block';
+            
+            // Update TL;DR card with Monte Carlo success rate
+            const mcCardStyle = mc.successRate >= 0.85 ? 'excellent' : mc.successRate >= 0.70 ? 'good' : mc.successRate >= 0.50 ? 'warning' : 'danger';
+            const mcSummaryCard = document.getElementById('mcSuccessSummary');
+            if (mcSummaryCard) {
+                mcSummaryCard.style.display = 'block';
+                mcSummaryCard.className = 'tldr-card ' + mcCardStyle;
+                mcSummaryCard.querySelector('.tldr-icon').textContent = mcCardStyle === 'excellent' ? '' : mcCardStyle === 'good' ? '' : mcCardStyle === 'warning' ? '' : '';
+                mcSummaryCard.querySelector('.tldr-subtitle').textContent = mc.successRate >= 0.85 ? 'Excellent probability of success' : 
+                    mc.successRate >= 0.70 ? 'Good probability of success' : 
+                    mc.successRate >= 0.50 ? 'Moderate risk - consider adjustments' : 'High risk - plan needs changes';
+            }
+            document.getElementById('tldrMCRate').textContent = (mc.successRate * 100).toFixed(1) + '%';
+            
+            document.getElementById('mcSuccessCard').className = mc.successRate >= 0.85 ? 'result-card success' : mc.successRate >= 0.70 ? 'result-card' : 'result-card warning';
+            document.getElementById('mcSuccessRate').textContent = (mc.successRate * 100).toFixed(1) + '%';
+            document.getElementById('mcLifeExpectancy').textContent = inputs.lifeExpectancy;
+            document.getElementById('mc10th').textContent = '$' + (mc.p10 / 1e6).toFixed(2) + 'M';
+            document.getElementById('mc50th').textContent = '$' + (mc.p50 / 1e6).toFixed(2) + 'M';
+            document.getElementById('mc90th').textContent = '$' + (mc.p90 / 1e6).toFixed(2) + 'M';
+            
+            let stressInfo = '';
+            if (inputs.stressScenario !== 'none') {
+                const cy = new Date().getFullYear();
+                const period = inputs.stressScenario === 'nearterm' ? `${cy+1}-${cy+inputs.stressDuration}` :
+                    `${cy+(inputs.fullRetirementAge-inputs.currentAge)}-${cy+(inputs.fullRetirementAge-inputs.currentAge)+inputs.stressDuration-1}`;
+                stressInfo = `<div class="highlight-box"><h4>Stress Test Applied</h4>
+                    <p>Period: ${period} | Forced return: ${(inputs.stressReturn*100).toFixed(1)}% vs. normal ${(inputs.returnRate*100).toFixed(1)}%</p></div>`;
+            }
+            
+            document.getElementById('mcMessage').innerHTML = stressInfo + (mc.successRate >= 0.85 ?
+                `<div class="info-box"><h4>Excellent! ${(mc.successRate*100).toFixed(1)}% success rate</h4>
+                <p>10th %ile: $${(mc.p10/1e6).toFixed(2)}M | Median: $${(mc.p50/1e6).toFixed(2)}M | 90th %ile: $${(mc.p90/1e6).toFixed(2)}M</p></div>` :
+                mc.successRate >= 0.70 ?
+                `<div class="warning-box"><h4>Moderate risk: ${(mc.successRate*100).toFixed(1)}% success</h4>
+                <p>Consider working 2-3 more years or reducing expenses.</p></div>` :
+                `<div class="warning-box"><h4>High risk: ${(mc.successRate*100).toFixed(1)}% success</h4>
+                <p>Significant chance of failure. Adjust plan.</p></div>`);
+            
+            const layout = { title: 'Monte Carlo: Range of Outcomes', xaxis: { title: 'Year' }, yaxis: { title: 'Portfolio ($)', tickformat: '$,.0f' } };
+            if (inputs.stressScenario !== 'none') {
+                const cy = new Date().getFullYear();
+                const start = inputs.stressScenario === 'nearterm' ? cy+1 : cy+(inputs.fullRetirementAge-inputs.currentAge);
+                const end = start + inputs.stressDuration - (inputs.stressScenario === 'nearterm' ? 0 : 1);
+                layout.shapes = [{ type: 'rect', xref: 'x', yref: 'paper', x0: start, x1: end, y0: 0, y1: 1, fillcolor: 'rgba(231,76,60,0.1)', line: { width: 0 } }];
+            }
+            
+            Plotly.newPlot('mcChart', [
+                { x: mc.percentiles.p90.map(d => d.year), y: mc.percentiles.p90.map(d => d.value), name: '90th %ile', line: { color: '#2ecc71', width: 2 } },
+                { x: mc.percentiles.p75.map(d => d.year), y: mc.percentiles.p75.map(d => d.value), name: '75th %ile', line: { color: '#3498db', width: 2 } },
+                { x: mc.percentiles.p50.map(d => d.year), y: mc.percentiles.p50.map(d => d.value), name: 'Median', line: { color: '#f39c12', width: 3 } },
+                { x: mc.percentiles.p25.map(d => d.year), y: mc.percentiles.p25.map(d => d.value), name: '25th %ile', line: { color: '#e67e22', width: 2 } },
+                { x: mc.percentiles.p10.map(d => d.year), y: mc.percentiles.p10.map(d => d.value), name: '10th %ile', line: { color: '#e74c3c', width: 2 } }
+            ], layout);
+            
+            Plotly.newPlot('mcDistribution', [{ x: mc.finalBalances.map(b => b/1e6), type: 'histogram', marker: { color: '#3498db' } }], {
+                title: 'Distribution of Final Balances', xaxis: { title: 'Final Value ($M)' }, yaxis: { title: 'Count' },
+                shapes: [{ type: 'line', x0: 0, x1: 0, y0: 0, y1: 1, yref: 'paper', line: { color: 'red', width: 2, dash: 'dash' } }]
+            });
+            
+            document.getElementById('mcPanel').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Initialize expense table on load
+        updateExpenseTable();
+        // ========================================
+        // COLLAPSIBLE SECTIONS & UI ENHANCEMENTS
+        // ========================================
+        
+        function toggleSection(header) {
+            const content = header.nextElementSibling;
+            const toggle = header.querySelector('.section-toggle');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                header.classList.remove('collapsed');
+                toggle.classList.add('expanded');
+            } else {
+                content.classList.add('collapsed');
+                header.classList.add('collapsed');
+                toggle.classList.remove('expanded');
+            }
+        }
+        
+        function expandAllSections() {
+            document.querySelectorAll('.section-content').forEach(content => {
+                content.classList.remove('collapsed');
+            });
+            document.querySelectorAll('.section-header').forEach(header => {
+                header.classList.remove('collapsed');
+            });
+            document.querySelectorAll('.section-toggle').forEach(toggle => {
+                toggle.classList.add('expanded');
+            });
+        }
+        
+        function collapseAllSections() {
+            document.querySelectorAll('.section-content').forEach(content => {
+                content.classList.add('collapsed');
+            });
+            document.querySelectorAll('.section-header').forEach(header => {
+                header.classList.add('collapsed');
+            });
+            document.querySelectorAll('.section-toggle').forEach(toggle => {
+                toggle.classList.remove('expanded');
+            });
+        }
+        
+        function loadDefaults() {
+            // Basic Information
+            document.getElementById('currentPortfolio').value = formatNumberWithCommas(0);
+            document.getElementById('currentAge').value = 30;
+            document.getElementById('spouseAge').value = '';  // Optional - leave blank if single
+            document.getElementById('lifeExpectancy').value = 85;
+            
+            // Portfolio Breakdown
+            document.getElementById('traditionalValue').value = formatNumberWithCommas(0);
+            document.getElementById('rothValue').value = formatNumberWithCommas(0);
+            document.getElementById('taxableValue').value = formatNumberWithCommas(0);
+            
+            // Retirement Timeline
+            document.getElementById('partTimeStartAge').value = 55;
+            document.getElementById('fullRetirementAge').value = 65;
+            document.getElementById('fullTimeIncome').value = formatNumberWithCommas(0);
+            document.getElementById('partTimeIncome').value = formatNumberWithCommas(0);
+            
+            // Contributions
+            document.getElementById('traditionalContributions').value = formatNumberWithCommas(0);
+            document.getElementById('rothContributions').value = formatNumberWithCommas(0);
+            document.getElementById('taxableContributions').value = formatNumberWithCommas(0);
+            
+            // Healthcare
+            document.getElementById('healthcareCosts').value = formatNumberWithCommas(15000);
+            document.getElementById('medicareSupplement').value = formatNumberWithCommas(6000);
+            document.getElementById('numPeople').value = 2;
+            
+            // Tax Strategy
+            document.getElementById('filingStatus').value = 'married';
+            document.getElementById('maxConversionRate').value = 22;
+            document.getElementById('costBasisPercent').value = 70;
+            
+            // Mortgage
+            document.getElementById('mortgagePayment').value = formatNumberWithCommas(0);
+            document.getElementById('mortgagePayoffAge').value = 65;
+            
+            // Expenses & Income
+            document.getElementById('annualExpenses').value = formatNumberWithCommas(0);
+            document.getElementById('socialSecurity').value = formatNumberWithCommas(0);
+            document.getElementById('ssStartAge').value = 67;
+            
+            // Market Assumptions
+            document.getElementById('returnRate').value = 8;
+            document.getElementById('stdDev').value = 16;
+            document.getElementById('inflationRate').value = 3;
+            
+            // Stress Test
+            document.getElementById('stressScenario').value = 'none';
+            document.getElementById('mcSimCount').value = 500;
+            document.getElementById('stressReturn').value = 0;
+            document.getElementById('stressDuration').value = 5;
+            
+            alert('Default values loaded! Review the values and click Calculate when ready.');
+        }
+        
+        // ==========================================
+        // EARLIEST RETIREMENT AGE CALCULATOR
+        // ==========================================
+        
+        // Show/hide part-time income field based on retirement type selection
+        document.querySelectorAll('input[name="retirementType"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const partTimeGroup = document.getElementById('partTimeIncomeGroup');
+                partTimeGroup.style.display = this.value === 'parttime' ? 'block' : 'none';
+            });
+        });
+        
+        async function runEarliestRetirementSearch() {
+            const button = document.getElementById('earlyRetireButton');
+            const progressDiv = document.getElementById('earlyRetireProgress');
+            const progressBar = document.getElementById('earlyRetireProgressBar');
+            const progressText = document.getElementById('earlyRetireProgressText');
+            const resultsDiv = document.getElementById('earlyRetireResults');
+            
+            const ratesToTest = [];
+            if (document.getElementById('testRate50').checked) ratesToTest.push(0.50);
+            if (document.getElementById('testRate75').checked) ratesToTest.push(0.75);
+            if (document.getElementById('testRate85').checked) ratesToTest.push(0.85);
+            if (document.getElementById('testRate95').checked) ratesToTest.push(0.95);
+            
+            if (ratesToTest.length === 0) {
+                alert('Please select at least one success rate to test.');
+                return;
+            }
+            
+            const retirementType = document.querySelector('input[name="retirementType"]:checked').value;
+            const partTimeIncome = retirementType === 'parttime' ? 
+                parseFloat(removeCommas(document.getElementById('earlyRetirePartTimeIncome').value)) : 0;
+            
+            button.disabled = true;
+            progressDiv.style.display = 'block';
+            resultsDiv.style.display = 'none';
+            progressBar.style.width = '0%';
+            progressBar.textContent = '0%';
+            
+            const results = [];
+            let completedTests = 0;
+            const estimatedTestsPerRate = 8;
+            const totalEstimatedTests = ratesToTest.length * estimatedTestsPerRate;
+            
+            try {
+                console.log('Starting earliest retirement search with rates:', ratesToTest);
+                
+                for (let i = 0; i < ratesToTest.length; i++) {
+                    const targetRate = ratesToTest[i];
+                    const ratePercent = (targetRate * 100).toFixed(0);
+                    
+                    progressText.textContent = `Testing ${ratePercent}% success rate...`;
+                    console.log(`Testing ${ratePercent}% success rate`);
+                    
+                    const result = await findEarliestRetirementAge(
+                        targetRate, 
+                        partTimeIncome,
+                        (testNumber, testAge, foundAge) => {
+                            completedTests++;
+                            const progress = Math.min(100, (completedTests / totalEstimatedTests) * 100);
+                            progressBar.style.width = progress + '%';
+                            progressBar.textContent = Math.floor(progress) + '%';
+                            
+                            if (foundAge) {
+                                progressText.textContent = `Testing ${ratePercent}% success... Age ${testAge} -> ${foundAge} - Found!`;
+                                console.log(`Found age ${foundAge} for ${ratePercent}% success rate`);
+                            } else {
+                                progressText.textContent = `Testing ${ratePercent}% success... Testing age ${testAge}...`;
+                            }
+                        }
+                    );
+                    
+                    console.log('Result for', ratePercent + '%:', result);
+                    
+                    results.push({
+                        successRate: targetRate,
+                        earliestAge: result.age,
+                        fullRetirementAge: result.fullRetirementAge,
+                        portfolioNeeded: result.portfolioNeeded,
+                        annualSpending: result.annualSpending
+                    });
+                    
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
+                progressBar.style.width = '100%';
+                progressBar.textContent = '100%';
+                progressText.textContent = 'Complete! Results below.';
+                console.log('All tests complete. Results:', results);
+                
+                displayEarliestRetirementResults(results, retirementType, partTimeIncome);
+                
+            } catch (error) {
+                console.error('Error during earliest retirement search:', error);
+                console.error('Error stack:', error.stack);
+                alert('An error occurred during the search: ' + error.message + '. Check the browser console (F12) for more details.');
+            } finally {
+                button.disabled = false;
+            }
+        }
+        
+        async function findEarliestRetirementAge(targetSuccessRate, partTimeIncome, progressCallback) {
+            try {
+                const baseInputs = getInputs();
+                console.log('Base inputs:', baseInputs);
+                
+                // Determine what age we're searching for based on retirement type
+                const isPartTime = partTimeIncome > 0;
+                const partTimeYears = 5; // Fixed 5-year part-time period
+                
+                // Set search bounds based on retirement type
+                let minAge, maxAge;
+                if (isPartTime) {
+                    // Searching for PART-TIME START age
+                    // Earliest possible: current age (can move to part-time immediately)
+                    minAge = baseInputs.currentAge;
+                    maxAge = 75; // Latest realistic part-time start
+                    console.log(`Searching for earliest PART-TIME START age (full retirement = part-time + ${partTimeYears} years)`);
+                } else {
+                    // Searching for FULL RETIREMENT age
+                    // Earliest possible: current age + 1 (need at least 1 year)
+                    minAge = baseInputs.currentAge + 1;
+                    maxAge = 80;
+                    console.log('Searching for earliest FULL RETIREMENT age');
+                }
+                
+                let testCount = 0;
+                
+                while (maxAge - minAge > 1) {
+                    testCount++;
+                    const testAge = Math.floor((minAge + maxAge) / 2);
+                    
+                    console.log(`Binary search iteration ${testCount}: testing age ${testAge} (range: ${minAge}-${maxAge})`);
+                    
+                    const testInputs = JSON.parse(JSON.stringify(baseInputs));
+                    
+                    if (isPartTime) {
+                        // Testing PART-TIME START age
+                        testInputs.partTimeStartAge = testAge;
+                        testInputs.fullRetirementAge = testAge + partTimeYears;
+                        testInputs.partTimeIncome = partTimeIncome;
+                        
+                        // Validate: part-time must start at or after current age
+                        if (testAge < baseInputs.currentAge) {
+                            console.log(`Age ${testAge} invalid: before current age`);
+                            minAge = testAge;
+                            continue;
+                        }
+                    } else {
+                        // Testing FULL RETIREMENT age (no part-time)
+                        testInputs.fullRetirementAge = testAge;
+                        testInputs.partTimeStartAge = testAge;
+                        testInputs.partTimeIncome = 0;
+                    }
+                    
+                    const mcRuns = 500;
+                    let successCount = 0;
+                    
+                    for (let i = 0; i < mcRuns; i++) {
+                        try {
+                            const result = projectRetirement(testInputs, true);
+                            const finalPortfolio = result.allData[result.allData.length - 1].portfolio;
+                            if (finalPortfolio > 0) successCount++;
+                        } catch (mcError) {
+                            console.error(`Error in MC simulation ${i}:`, mcError);
+                            throw new Error('Monte Carlo simulation failed: ' + mcError.message);
+                        }
+                    }
+                    
+                    const successRate = successCount / mcRuns;
+                    const ageType = isPartTime ? 'part-time start' : 'full retirement';
+                    console.log(`Age ${testAge} (${ageType}): ${(successRate * 100).toFixed(1)}% success rate (target: ${(targetSuccessRate * 100).toFixed(1)}%)`);
+                    
+                    if (progressCallback) {
+                        progressCallback(testCount, testAge, null);
+                    }
+                    
+                    if (successRate >= targetSuccessRate) {
+                        maxAge = testAge;
+                    } else {
+                        minAge = testAge;
+                    }
+                    
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+                
+                // Build final result with the found age
+                const finalInputs = JSON.parse(JSON.stringify(baseInputs));
+                
+                if (isPartTime) {
+                    finalInputs.partTimeStartAge = maxAge;
+                    finalInputs.fullRetirementAge = maxAge + partTimeYears;
+                    finalInputs.partTimeIncome = partTimeIncome;
+                } else {
+                    finalInputs.fullRetirementAge = maxAge;
+                    finalInputs.partTimeStartAge = maxAge;
+                    finalInputs.partTimeIncome = 0;
+                }
+                
+                const finalResult = projectRetirement(finalInputs, false);
+                const portfolioAtAge = finalResult.allData.find(d => d.age === maxAge);
+                
+                console.log('Final result for target rate', targetSuccessRate, ':', {
+                    age: maxAge,
+                    ageType: isPartTime ? 'part-time start' : 'full retirement',
+                    fullRetirementAge: isPartTime ? maxAge + partTimeYears : maxAge,
+                    portfolio: portfolioAtAge ? portfolioAtAge.portfolio : 0
+                });
+                
+                if (progressCallback) {
+                    progressCallback(testCount, maxAge, maxAge);
+                }
+                
+                return {
+                    age: maxAge, // This is part-time start age if isPartTime, full retirement age otherwise
+                    fullRetirementAge: isPartTime ? maxAge + partTimeYears : maxAge,
+                    isPartTime: isPartTime,
+                    portfolioNeeded: portfolioAtAge ? portfolioAtAge.portfolio : 0,
+                    annualSpending: finalInputs.annualExpensesToday
+                };
+            } catch (error) {
+                console.error('Error in findEarliestRetirementAge:', error);
+                throw error;
+            }
+        }
+        
+        function displayEarliestRetirementResults(results, retirementType, partTimeIncome) {
+            const resultsDiv = document.getElementById('earlyRetireResults');
+            const baseInputs = getInputs();
+            const isPartTime = retirementType === 'parttime';
+            
+            let html = '<h3 style="margin-bottom: 20px; color: #2c3e50;">Results: Earliest Retirement Age</h3>';
+            
+            html += '<div style="overflow-x: auto;">';
+            html += '<table class="expense-table" style="margin-bottom: 30px;">';
+            html += '<thead><tr>';
+            html += '<th>Success Rate</th>';
+            
+            if (isPartTime) {
+                html += '<th>Part-Time Start</th>';
+                html += '<th>Full Retirement</th>';
+            } else {
+                html += '<th>Full Retirement</th>';
+            }
+            
+            html += '<th>Years from Now</th>';
+            html += '<th>Portfolio Needed</th>';
+            html += '<th>Annual Spending</th>';
+            html += '</tr></thead>';
+            html += '<tbody>';
+            
+            results.forEach(r => {
+                const ratePercent = (r.successRate * 100).toFixed(0);
+                const yearsFromNow = r.earliestAge - baseInputs.currentAge;
+                const highlight = r.successRate === 0.85 ? ' style="background: #e3f2fd; font-weight: 600;"' : '';
+                const checkmark = r.successRate === 0.85 ? ' ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“' : '';
+                
+                html += '<tr' + highlight + '>';
+                html += `<td>${ratePercent}%${checkmark}</td>`;
+                
+                if (isPartTime) {
+                    // Show both part-time start and full retirement ages
+                    html += `<td>Age ${r.earliestAge}</td>`;
+                    html += `<td>Age ${r.fullRetirementAge}</td>`;
+                } else {
+                    // Show just full retirement age
+                    html += `<td>Age ${r.earliestAge}</td>`;
+                }
+                
+                html += `<td>${yearsFromNow} years</td>`;
+                html += `<td>$${r.portfolioNeeded.toLocaleString(undefined, {maximumFractionDigits: 0})}</td>`;
+                html += `<td>$${r.annualSpending.toLocaleString(undefined, {maximumFractionDigits: 0})}</td>`;
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table></div>';
+            
+            if (retirementType === 'parttime' && results.length > 0) {
+                html += '<h4 style="margin: 30px 0 15px 0; color: #2c3e50;">Part-Time Income Sensitivity Analysis</h4>';
+                html += '<p style="margin-bottom: 15px; font-size: 14px; color: #555;">How different part-time income levels affect when you can move to part-time (at 85% success rate):</p>';
+                
+                html += '<div style="overflow-x: auto;">';
+                html += '<table class="expense-table">';
+                html += '<thead><tr>';
+                html += '<th>Part-Time Income</th>';
+                html += '<th>Part-Time Start (85%)</th>';
+                html += '<th>Full Retirement</th>';
+                html += '<th>Portfolio Needed</th>';
+                html += '</tr></thead>';
+                html += '<tbody>';
+                
+                const sensIncome = [0, 30000, partTimeIncome, 75000].filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b);
+                const result85 = results.find(r => r.successRate === 0.85);
+                
+                if (result85) {
+                    sensIncome.forEach(income => {
+                        const isCurrent = income === partTimeIncome;
+                        const highlight = isCurrent ? ' style="background: #e3f2fd; font-weight: 600;"' : '';
+                        const arrow = isCurrent ? ' (Your Plan)' : '';
+                        
+                        // Rough estimate: higher income allows earlier part-time start
+                        const ageAdjust = Math.round((partTimeIncome - income) / 10000);
+                        const estimatedPartTimeStart = result85.earliestAge + ageAdjust;
+                        const estimatedFullRetirement = estimatedPartTimeStart + 5;
+                        const estimatedPortfolio = result85.portfolioNeeded * Math.pow(1.05, ageAdjust);
+                        
+                        html += '<tr' + highlight + '>';
+                        html += `<td>$${income.toLocaleString()}/year${arrow}</td>`;
+                        html += `<td>Age ${estimatedPartTimeStart}</td>`;
+                        html += `<td>Age ${estimatedFullRetirement}</td>`;
+                        html += `<td>$${estimatedPortfolio.toLocaleString(undefined, {maximumFractionDigits: 0})}</td>`;
+                        html += '</tr>';
+                    });
+                }
+                
+                html += '</tbody></table></div>';
+            }
+            
+            html += '<div class="info-box" style="margin-top: 30px;">';
+            html += '<h4>How to Interpret These Results</h4>';
+            html += '<ul style="margin-left: 20px; margin-top: 10px;">';
+            
+            if (isPartTime) {
+                html += '<li><strong>Part-Time Start:</strong> When you can reduce to part-time work ($' + partTimeIncome.toLocaleString() + '/year)</li>';
+                html += '<li><strong>Full Retirement:</strong> When you can stop working completely (5 years after part-time start)</li>';
+            } else {
+                html += '<li><strong>Full Retirement:</strong> When you can stop all work and live off your portfolio</li>';
+            }
+            
+            html += '<li><strong>85% success rate ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“</strong> is the industry standard for retirement planning</li>';
+            html += '<li><strong>Years from Now</strong> shows how long until you could ' + (isPartTime ? 'move to part-time' : 'fully retire') + ' at each success rate</li>';
+            html += '<li><strong>Portfolio Needed</strong> is your total portfolio value at that age</li>';
+            
+            if (retirementType === 'parttime') {
+                html += '<li><strong>Part-time income</strong> significantly accelerates when you can reduce your working hours</li>';
+            }
+            html += '</ul>';
+            html += '</div>';
+            
+            resultsDiv.innerHTML = html;
+            resultsDiv.style.display = 'block';
+            resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        // Register service worker for offline functionality
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then((registration) => {
+                        console.log('Service Worker registered successfully:', registration.scope);
+                        
+                        // Check for updates periodically
+                        setInterval(() => {
+                            registration.update();
+                        }, 60000); // Check every minute
+                    })
+                    .catch((error) => {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            });
+            
+            // Show install prompt
+            let deferredPrompt;
+            window.addEventListener('beforeinstallprompt', (e) => {
+                // Prevent the mini-infobar from appearing on mobile
+                e.preventDefault();
+                // Stash the event so it can be triggered later
+                deferredPrompt = e;
+                
+                // Show install button (optional - could add a button to trigger this)
+                console.log('App can be installed');
+            });
+            
+            // Track when app is installed
+            window.addEventListener('appinstalled', (evt) => {
+                console.log('App installed successfully');
+            });
+        }
+    </script>
+</body>
+</html>
