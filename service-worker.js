@@ -1,9 +1,10 @@
 // Service Worker for Retirement Calculator PWA
-// Version 1.0.0
+// Version 1.0.1 - Fixed filename references
 
 const CACHE_NAME = 'retirement-calculator-v1';
 const urlsToCache = [
-  './retirement_calculator.html',
+  './',
+  './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
@@ -59,8 +60,8 @@ self.addEventListener('fetch', (event) => {
         });
       })
       .catch(() => {
-        // Return a custom offline page if available
-        return caches.match('./retirement_calculator.html');
+        // Return the index page as fallback
+        return caches.match('./index.html');
       })
   );
 });
